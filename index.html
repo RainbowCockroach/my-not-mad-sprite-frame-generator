@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite Frame — my-not-mad</title>
+<meta name="description" content="Generates an exact-size canvas and isometric wireframe guide for hand-drawn furniture sprites.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1930;
+    --sheet:#152340;
+    --rule:#2B3E67;
+    --chalk:#E9EEF8;
+    --muted:#7F93BE;
+    --shu:#E4572E;
+    --paper:#EDEFE7;
+    --display:"Zen Old Mincho",Georgia,serif;
+    --sans:"IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--ink);color:var(--chalk);
+    font-family:var(--sans);font-size:14px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--shu)}
+
+  .frame{min-height:100%;display:flex;flex-direction:column}
+
+  /* ---- masthead ---- */
+  header{
+    display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+    padding:20px 24px 16px;border-bottom:1px solid var(--rule);
+  }
+  h1{
+    font-family:var(--display);font-weight:700;font-size:26px;line-height:1;
+    margin:0;letter-spacing:.06em;
+  }
+  h1 .mark{color:var(--shu)}
+  header .sub{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  header .spacer{flex:1}
+
+  main{flex:1;display:grid;grid-template-columns:340px 1fr;min-height:0}
+
+  /* ---- spec column ---- */
+  .spec{
+    border-right:1px solid var(--rule);padding:22px 24px 40px;
+    overflow-y:auto;
+  }
+  .legend{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:10px;margin:0 0 14px;
+  }
+  .legend::after{content:"";flex:1;height:1px;background:var(--rule)}
+
+  .dim{
+    display:grid;grid-template-columns:1fr auto;align-items:center;
+    gap:12px;padding:10px 0;border-bottom:1px solid var(--rule);
+  }
+  .dim label{display:block}
+  .dim .name{font-size:14px}
+  .dim .axis{
+    font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;
+  }
+  .stepper{display:flex;align-items:center;gap:2px}
+  .stepper button{
+    width:26px;height:32px;border:1px solid var(--rule);background:transparent;
+    color:var(--muted);font-family:var(--mono);font-size:14px;cursor:pointer;
+    transition:color .12s,border-color .12s;
+  }
+  .stepper button:hover{color:var(--chalk);border-color:var(--muted)}
+  .stepper input{
+    width:66px;height:32px;text-align:center;background:var(--sheet);
+    border:1px solid var(--rule);color:var(--chalk);
+    font-family:var(--mono);font-size:15px;
+  }
+  .stepper input:focus-visible,.stepper button:focus-visible,
+  summary:focus-visible,.switch:focus-within{outline:2px solid var(--shu);outline-offset:2px}
+  input[type=number]{-moz-appearance:textfield}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+  details{margin-top:28px}
+  summary{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);cursor:pointer;list-style:none;
+    display:flex;align-items:center;gap:10px;
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"+";color:var(--shu);font-size:13px}
+  details[open] summary::before{content:"−"}
+  summary::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .proj{padding:14px 0 4px}
+  .proj .dim{border-bottom:none;padding:6px 0}
+  .proj .stepper input{width:78px}
+  .derived{
+    font-family:var(--mono);font-size:11.5px;color:var(--muted);
+    border-left:2px solid var(--rule);padding:8px 0 8px 12px;margin-top:10px;
+  }
+  .derived b{color:var(--chalk);font-weight:500}
+  .preset{
+    display:flex;gap:8px;margin-top:14px;
+  }
+  .preset button{
+    flex:1;padding:7px 8px;background:transparent;border:1px solid var(--rule);
+    color:var(--muted);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;cursor:pointer;
+  }
+  .preset button[aria-pressed=true]{border-color:var(--shu);color:var(--chalk)}
+  .note{font-size:12px;color:var(--muted);margin-top:12px}
+
+  .switches{margin-top:28px;display:grid;gap:2px}
+  .switch{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:9px 0;border-bottom:1px solid var(--rule);cursor:pointer;
+  }
+  .switch span{font-size:13px}
+  .switch input{accent-color:var(--shu);width:16px;height:16px}
+  .seg{display:flex;border:1px solid var(--rule)}
+  .seg button{
+    padding:5px 11px;background:transparent;border:none;color:var(--muted);
+    font-family:var(--mono);font-size:11px;cursor:pointer;
+  }
+  .seg button[aria-pressed=true]{background:var(--rule);color:var(--chalk)}
+
+  /* ---- sheet ---- */
+  .sheet{
+    position:relative;min-width:0;display:flex;align-items:center;justify-content:center;
+    padding:40px 40px 96px;overflow:auto;
+    background-color:var(--ink);
+    background-image:
+      repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px 48px),
+      repeating-linear-gradient(to bottom,var(--rule) 0 1px,transparent 1px 48px);
+    background-position:center;
+    opacity:1;
+  }
+  .sheet::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%,transparent 20%,var(--ink) 95%);
+  }
+  .stage{position:relative;z-index:1;line-height:0}
+  .stage canvas{display:block;max-width:100%;height:auto}
+  .stage.on-paper{background:var(--paper)}
+  .stage.on-ink{background:var(--sheet)}
+  .stage::after{
+    content:"";position:absolute;inset:-1px;border:1px dashed var(--muted);pointer-events:none;
+  }
+
+  /* ---- title block ---- */
+  .titleblock{
+    position:absolute;right:24px;bottom:24px;z-index:2;
+    background:var(--sheet);border:1px solid var(--rule);
+    display:grid;grid-template-columns:auto auto;
+  }
+  .tb-cell{padding:9px 14px;border-right:1px solid var(--rule)}
+  .tb-cell .k{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);display:block;
+  }
+  .tb-cell .v{font-family:var(--mono);font-size:15px;color:var(--chalk)}
+  .tb-cell .v small{font-size:11px;color:var(--muted)}
+  button.export{
+    border:none;border-left:1px solid var(--rule);background:var(--shu);color:#fff;
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    padding:0 20px;cursor:pointer;grid-row:span 1;
+  }
+  button.export:hover{filter:brightness(1.1)}
+  button.export:focus-visible{outline:2px solid var(--chalk);outline-offset:-4px}
+  .copyhint{
+    grid-column:1/-1;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);
+    padding:5px 14px;text-align:right;
+  }
+
+  @media (max-width:880px){
+    main{grid-template-columns:1fr}
+    .spec{border-right:none;border-bottom:1px solid var(--rule)}
+    .sheet{padding:28px 20px 130px;min-height:60vh}
+    .titleblock{right:20px;left:20px;bottom:20px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="frame">
+  <header>
+    <h1><span class="mark">◧</span> Sprite Frame</h1>
+    <div class="spacer"></div>
+    <div class="sub">my-not-mad · furniture guide sheet</div>
+  </header>
+
+  <main>
+    <section class="spec">
+      <p class="legend">Footprint &amp; height</p>
+
+      <div class="dim">
+        <label for="in-w"><span class="name">Width</span><br><span class="axis">along X · toward camera-right</span></label>
+        <div class="stepper">
+          <button type="button" data-step="-1" data-for="in-w" aria-label="Decrease width">−</button>
+          <input id="in-w" type="number" value="1" min="0.05" step="0.25" inputmode="decimal">
+          <button type="button" data-step="1" data-for="in-w" aria-label="Increase width">+</button>
+        </div>
+      </div>
+
+      <div class="dim">
+        <label for="in-d"><span class="name">Depth</span><br><span class="axis">along Z · into the screen</span></label>
+        <div class="stepper">
+          <button type="button" data-step="-1" data-for="in-d" aria-label="Decrease depth">−</button>
+          <input id="in-d" type="number" value="1" min="0.05" step="0.25" inputmode="decimal">
+          <button type="button" data-step="1" data-for="in-d" aria-label="Increase depth">+</button>
+        </div>
+      </div>
+
+      <div class="dim">
+        <label for="in-h"><span class="name">Height</span><br><span class="axis">along Y · upright</span></label>
+        <div class="stepper">
+          <button type="button" data-step="-1" data-for="in-h" aria-label="Decrease height">−</button>
+          <input id="in-h" type="number" value="1" min="0" step="0.25" inputmode="decimal">
+          <button type="button" data-step="1" data-for="in-h" aria-label="Increase height">+</button>
+        </div>
+      </div>
+
+      <div class="switches">
+        <label class="switch"><span>1-unit grid</span><input id="in-grid" type="checkbox"></label>
+        <label class="switch"><span>Hidden edges dashed</span><input id="in-hidden" type="checkbox" checked></label>
+        <div class="switch" style="cursor:default">
+          <span>Export ink</span>
+          <div class="seg" id="ink-seg">
+            <button type="button" data-ink="light" aria-pressed="true">Light</button>
+            <button type="button" data-ink="dark" aria-pressed="false">Dark</button>
+          </div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Projection</summary>
+        <div class="proj">
+          <div class="dim">
+            <label for="in-ppu"><span class="name">Pixels per unit</span></label>
+            <div class="stepper"><input id="in-ppu" type="number" value="128" min="1" step="1" inputmode="decimal"></div>
+          </div>
+          <div class="dim">
+            <label for="in-yaw"><span class="name">Camera yaw</span><br><span class="axis">degrees around Y</span></label>
+            <div class="stepper"><input id="in-yaw" type="number" value="45" min="0" max="89" step="1" inputmode="decimal"></div>
+          </div>
+          <div class="dim">
+            <label for="in-tilt"><span class="name">Camera tilt</span><br><span class="axis">degrees down</span></label>
+            <div class="stepper"><input id="in-tilt" type="number" value="30" min="0" max="89" step="1" inputmode="decimal"></div>
+          </div>
+
+          <div class="preset">
+            <button type="button" id="p-exact" aria-pressed="true">Exact projection</button>
+            <button type="button" id="p-legacy" aria-pressed="false">Legacy 30° lines</button>
+          </div>
+
+          <p class="derived" id="derived"></p>
+          <p class="note" id="preset-note"></p>
+        </div>
+      </details>
+    </section>
+
+    <section class="sheet">
+      <div class="stage on-ink" id="stage"><canvas id="preview"></canvas></div>
+
+      <div class="titleblock">
+        <div class="tb-cell">
+          <span class="k">Canvas</span>
+          <span class="v" id="out-size">—</span>
+        </div>
+        <button class="export" id="download" type="button">Download PNG</button>
+        <div class="copyhint" id="copyhint">click size to copy</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var $ = function(id){ return document.getElementById(id); };
+  var inW = $("in-w"), inD = $("in-d"), inH = $("in-h");
+  var inPPU = $("in-ppu"), inYaw = $("in-yaw"), inTilt = $("in-tilt");
+  var inGrid = $("in-grid"), inHidden = $("in-hidden");
+  var stage = $("stage"), preview = $("preview");
+  var outSize = $("out-size"), derived = $("derived"), presetNote = $("preset-note");
+  var copyhint = $("copyhint");
+  var mode = "exact";      // "exact" | "legacy"
+  var ink = "light";       // "light" | "dark"
+
+  var INK_LIGHT = "#E9EEF8", INK_DARK = "#0E1930";
+  var RAD = Math.PI / 180;
+
+  function num(el, fallback, min){
+    var v = parseFloat(el.value);
+    if (!isFinite(v)) v = fallback;
+    if (min !== undefined && v < min) v = min;
+    return v;
+  }
+
+  // Pixels a single world unit travels on screen, in the drawn canvas' own pixels.
+  // The billboard cancels the camera's vertical squash, so drawn px == screen px.
+  function metrics(){
+    var ppu  = num(inPPU, 128, 1);
+    var yaw  = num(inYaw, 45, 0) * RAD;
+    var tilt = num(inTilt, 30, 0) * RAD;
+    var across = Math.cos(yaw) * ppu;                 // ground unit, horizontal
+    var rise, up;
+    if (mode === "legacy") {
+      rise = across * Math.tan(tilt);                 // CLAUDE.md's "~30° lines"
+      up   = ppu;                                     // CLAUDE.md's 128 px per height unit
+    } else {
+      rise = Math.sin(tilt) * Math.sin(yaw) * ppu;    // ground unit, vertical
+      up   = Math.cos(tilt) * ppu;                    // height unit, vertical
+    }
+    return { across: across, rise: rise, up: up };
+  }
+
+  function spec(){
+    var L = num(inW, 1, 0.05), W = num(inD, 1, 0.05), H = num(inH, 1, 0);
+    var m = metrics();
+    var wpx = (L + W) * m.across;
+    var hpx = (L + W) * m.rise + H * m.up;
+    return {
+      L:L, W:W, H:H, m:m,
+      wpx: wpx, hpx: hpx,
+      cw: Math.max(1, Math.ceil(wpx)),
+      ch: Math.max(1, Math.ceil(hpx))
+    };
+  }
+
+  // World (x, y, z) with origin at the footprint centre -> canvas pixel coords.
+  function project(s, x, y, z){
+    return {
+      x: (x - z) * s.m.across + s.wpx / 2,
+      y: s.hpx - ((x + z) * s.m.rise + y * s.m.up + (s.L + s.W) / 2 * s.m.rise)
+    };
+  }
+
+  function line(ctx, s, a, b){
+    var p = project(s, a[0], a[1], a[2]), q = project(s, b[0], b[1], b[2]);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(q.x, q.y);
+    ctx.stroke();
+  }
+
+  function draw(ctx, s, color, showGrid, dashHidden){
+    var hx = s.L / 2, hz = s.W / 2, H = s.H;
+    ctx.lineCap = "square";
+    ctx.strokeStyle = color;
+
+    // Near corner is (-hx, -hz): the camera sits on the -X / -Z side.
+    var near = [-hx, -hz], right = [hx, -hz], far = [hx, hz], left = [-hx, hz];
+    var ring = [near, right, far, left];
+
+    if (showGrid){
+      ctx.save();
+      ctx.globalAlpha = 0.34;
+      ctx.lineWidth = 1;
+      var t;
+      for (t = 1; t < s.L - 1e-6; t++)
+        line(ctx, s, [-hx + t, 0, -hz], [-hx + t, 0, hz]);
+      for (t = 1; t < s.W - 1e-6; t++)
+        line(ctx, s, [-hx, 0, -hz + t], [hx, 0, -hz + t]);
+      for (t = 1; t < H - 1e-6; t++)
+        for (var i = 0; i < 4; i++){
+          var a = ring[i], b = ring[(i + 1) % 4];
+          line(ctx, s, [a[0], t, a[1]], [b[0], t, b[1]]);
+        }
+      ctx.restore();
+    }
+
+    ctx.lineWidth = 1;
+
+    // Hidden: the far corner's post and the two bottom edges behind the box.
+    if (dashHidden){
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.setLineDash([4, 4]);
+      line(ctx, s, [far[0], 0, far[1]], [far[0], H, far[1]]);
+      line(ctx, s, [right[0], 0, right[1]], [far[0], 0, far[1]]);
+      line(ctx, s, [left[0], 0, left[1]], [far[0], 0, far[1]]);
+      ctx.restore();
+    }
+
+    // Footprint front edges, three visible posts, full top face.
+    line(ctx, s, [near[0], 0, near[1]], [right[0], 0, right[1]]);
+    line(ctx, s, [near[0], 0, near[1]], [left[0], 0, left[1]]);
+    if (!dashHidden){
+      line(ctx, s, [right[0], 0, right[1]], [far[0], 0, far[1]]);
+      line(ctx, s, [left[0], 0, left[1]], [far[0], 0, far[1]]);
+      line(ctx, s, [far[0], 0, far[1]], [far[0], H, far[1]]);
+    }
+    if (H > 0){
+      line(ctx, s, [near[0], 0, near[1]], [near[0], H, near[1]]);
+      line(ctx, s, [right[0], 0, right[1]], [right[0], H, right[1]]);
+      line(ctx, s, [left[0], 0, left[1]], [left[0], H, left[1]]);
+      for (var j = 0; j < 4; j++){
+        var p = ring[j], q = ring[(j + 1) % 4];
+        line(ctx, s, [p[0], H, p[1]], [q[0], H, q[1]]);
+      }
+    }
+  }
+
+  function render(){
+    var s = spec();
+    var color = ink === "dark" ? INK_DARK : INK_LIGHT;
+    stage.className = "stage " + (ink === "dark" ? "on-paper" : "on-ink");
+
+    // Fit the preview into the sheet without ever upscaling past 1:1.
+    var box = stage.parentNode.getBoundingClientRect();
+    var avail = { w: Math.max(120, box.width - 80), h: Math.max(120, box.height - 140) };
+    var scale = Math.min(1, avail.w / s.cw, avail.h / s.ch);
+    var dpr = window.devicePixelRatio || 1;
+
+    preview.width  = Math.max(1, Math.round(s.cw * scale * dpr));
+    preview.height = Math.max(1, Math.round(s.ch * scale * dpr));
+    preview.style.width  = (s.cw * scale) + "px";
+    preview.style.height = (s.ch * scale) + "px";
+
+    var ctx = preview.getContext("2d");
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+    draw(ctx, s, color, inGrid.checked, inHidden.checked);
+
+    outSize.innerHTML = s.cw + " × " + s.ch + " <small>px</small>";
+    derived.innerHTML =
+      "1 ground unit → <b>" + s.m.across.toFixed(1) + "</b> px across, <b>" +
+      s.m.rise.toFixed(1) + "</b> px rise<br>1 height unit → <b>" +
+      s.m.up.toFixed(1) + "</b> px up<br>preview at <b>" +
+      Math.round(scale * 100) + "%</b>";
+    copyhint.textContent = "click size to copy";
+  }
+
+  function exportPNG(){
+    var s = spec();
+    var c = document.createElement("canvas");
+    c.width = s.cw; c.height = s.ch;
+    draw(c.getContext("2d"), s, ink === "dark" ? INK_DARK : INK_LIGHT,
+         inGrid.checked, inHidden.checked);
+    var a = document.createElement("a");
+    a.download = "frame_" + s.L + "x" + s.W + "x" + s.H + "_" + s.cw + "x" + s.ch + ".png";
+    a.href = c.toDataURL("image/png");
+    a.click();
+  }
+
+  function setPreset(next){
+    mode = next;
+    $("p-exact").setAttribute("aria-pressed", String(mode === "exact"));
+    $("p-legacy").setAttribute("aria-pressed", String(mode === "legacy"));
+    presetNote.textContent = mode === "exact"
+      ? "Derived straight from the camera angles."
+      : "Reproduces the 90 / 52 / 128 numbers noted in CLAUDE.md. They assume 30° ground lines and no tilt loss on height, so a legacy frame is slightly taller than the camera actually renders.";
+    render();
+  }
+
+  // ---- wiring ----
+  [inW, inD, inH, inPPU, inYaw, inTilt].forEach(function(el){
+    el.addEventListener("input", render);
+  });
+  [inGrid, inHidden].forEach(function(el){ el.addEventListener("change", render); });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".stepper button"), function(b){
+    b.addEventListener("click", function(){
+      var el = $(b.dataset.for);
+      var step = parseFloat(el.step) * parseFloat(b.dataset.step);
+      var min = parseFloat(el.min);
+      el.value = Math.max(min, Math.round((num(el, 1, min) + step) * 1000) / 1000);
+      render();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("#ink-seg button"), function(b){
+    b.addEventListener("click", function(){
+      ink = b.dataset.ink;
+      Array.prototype.forEach.call(document.querySelectorAll("#ink-seg button"), function(o){
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+      render();
+    });
+  });
+
+  $("p-exact").addEventListener("click", function(){ setPreset("exact"); });
+  $("p-legacy").addEventListener("click", function(){ setPreset("legacy"); });
+  $("download").addEventListener("click", exportPNG);
+
+  outSize.style.cursor = "pointer";
+  outSize.addEventListener("click", function(){
+    var s = spec();
+    navigator.clipboard.writeText(s.cw + " x " + s.ch).then(function(){
+      copyhint.textContent = "copied";
+    }, function(){
+      copyhint.textContent = "copy blocked by browser";
+    });
+  });
+
+  window.addEventListener("resize", render);
+  setPreset("exact");
+})();
+</script>
+</body>
+</html>
