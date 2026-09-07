@@ -1,0 +1,1 @@
+# my-not-mad-sprite-frame-generator
