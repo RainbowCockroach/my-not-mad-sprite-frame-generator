@@ -14,9 +14,10 @@ Type the character's **height in metres** — one world unit is one metre — an
 
 - a **ground line** on the cell's bottom edge — the bottom-centre pivot, so the feet go here;
 - a **crown line** at `height × 110.9` px, which is how tall the figure has to be drawn to stand correctly next to 3D walls and furniture;
+- a **facing arrow** on the floor and a **row label**, so each row says which way the character looks. The arrow follows the camera's 2:1 ground angle, and points screen-left by default because `PlayerVisual` sets `flipX` when moving camera-right — the art is drawn facing left and mirrored at runtime. A label containing “back” aims it away from the camera, “right” mirrors it;
 - a dashed **stance ellipse** — the CapsuleCollider's radius projected onto the floor, so you can see how wide a pose can get before the drawing overhangs what actually collides.
 
-The default sheet is **4 × 4 cells of 256 px**, matching `akane_normal.png`: one animation per row, four frames across. Under **Sheet & guides** you can change columns, rows and cell size, set the stance radius, or turn on head-division lines for figure proportions.
+The default sheet is **4 × 4 cells of 256 px**, matching `akane_normal.png`: one animation per row, four frames across, in the order the clips actually use — front idle, front walk, back idle, back walk. Under **Sheet & guides** you can change columns, rows and cell size, set the stance radius, or turn on head-division lines for figure proportions.
 
 Character height is the *drawn* height, not the collider height. In a top-down game only the capsule's radius really affects gameplay, so a taller character is mostly a drawing change.
 

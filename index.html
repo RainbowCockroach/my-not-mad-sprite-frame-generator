@@ -106,6 +106,13 @@
   summary::before{content:"+";color:var(--shu);font-size:13px}
   details[open] summary::before{content:"\2212"}
   summary::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .dim-wide{grid-template-columns:1fr}
+  .text-in{
+    width:100%;height:32px;margin-top:8px;padding:0 9px;
+    background:var(--sheet);border:1px solid var(--rule);color:var(--chalk);
+    font-family:var(--mono);font-size:12px;
+  }
+  .text-in:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
   .proj{padding:14px 0 4px}
   .proj .dim{border-bottom:none;padding:6px 0}
   .proj .stepper input{width:78px}
@@ -266,6 +273,10 @@
             <div class="dim">
               <label for="in-cr"><span class="name">Stance radius</span><br><span class="axis">metres &middot; the capsule on the floor</span></label>
               <div class="stepper"><input id="in-cr" type="number" value="0.5" min="0" step="0.05" inputmode="decimal"></div>
+            </div>
+            <div class="dim dim-wide">
+              <label for="in-labels"><span class="name">Row labels</span><br><span class="axis">one per row &middot; "back" and "right" aim the arrow</span></label>
+              <input id="in-labels" type="text" class="text-in" value="Front idle, Front walk, Back idle, Back walk">
             </div>
             <div class="dim">
               <label for="in-cell"><span class="name">Cell size</span><br><span class="axis">pixels, square</span></label>
@@ -470,6 +481,14 @@
 
   var inCH = $("in-ch"), inCR = $("in-cr"), inHeads = $("in-heads");
   var inCell = $("in-cell"), inCols = $("in-cols"), inRows = $("in-rows");
+  var inLabels = $("in-labels");
+
+  // A row label decides which way the drawing looks. Unflipped art faces
+  // screen-left, because PlayerVisual sets flipX when moving camera-right.
+  function facingFor(label){
+    var t = (label || "").toLowerCase();
+    return { away: t.indexOf("back") >= 0, right: t.indexOf("right") >= 0 };
+  }
 
   function characterSpec(){
     var m = metrics();
@@ -481,6 +500,7 @@
     var rows = Math.round(num(inRows, 4, 1));
     return {
       m:m, H:H, heads:heads, cell:cell, cols:cols, rows:rows,
+      labels: inLabels.value.split(",").map(function(t){ return t.trim(); }),
       figure: H * m.up,                      // drawn height of the character, px
       // A ground circle of radius r projects to an axis-aligned ellipse.
       footX: Math.SQRT2 * r * m.across,
@@ -492,11 +512,14 @@
 
   function paintCharacter(ctx, s, color){
     var col, row, x0, y0, baseY, midX, capY, n, spacing;
+    var label, face, dirX, dirY, len, ax, ay, bx, by;
     ctx.lineCap = "square";
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
 
     for (row = 0; row < s.rows; row++){
+      label = s.labels[row] || "";
+      face = facingFor(label);
       for (col = 0; col < s.cols; col++){
         x0 = col * s.cell;
         y0 = row * s.cell;
@@ -558,6 +581,34 @@
           ctx.font = "11px ui-monospace, Menlo, Consolas, monospace";
           ctx.textBaseline = "top";
           ctx.fillText(s.H.toFixed(2) + " m", x0 + 7, y0 + 6);
+          if (label){
+            ctx.textAlign = "right";
+            ctx.fillText(label, x0 + s.cell - 7, y0 + 6);
+            ctx.textAlign = "left";
+          }
+          ctx.restore();
+        }
+
+        // Facing arrow: a walk direction laid on the floor, so it carries the
+        // camera's 2:1 ground angle rather than a flat screen diagonal.
+        if (s.cell >= 96){
+          dirX = (face.right ? 1 : -1) * s.m.across;
+          dirY = (face.away ? -1 : 1) * s.m.rise;
+          len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+          dirX /= len; dirY /= len;
+          len = s.cell * 0.22;
+          ax = midX;
+          ay = baseY - (s.footY > 0 ? s.footY : s.cell * 0.12);
+          bx = ax + dirX * len;
+          by = ay + dirY * len;
+          ctx.save();
+          ctx.globalAlpha = 0.75;
+          line(ctx, ax, ay, bx, by);
+          // head
+          line(ctx, bx, by, bx - (dirX * 0.94 - dirY * 0.34) * len * 0.3,
+                            by - (dirY * 0.94 + dirX * 0.34) * len * 0.3);
+          line(ctx, bx, by, bx - (dirX * 0.94 + dirY * 0.34) * len * 0.3,
+                            by - (dirY * 0.94 - dirX * 0.34) * len * 0.3);
           ctx.restore();
         }
 
@@ -648,6 +699,7 @@
     el.addEventListener("input", render);
   });
   [inGrid, inHidden].forEach(function(el){ el.addEventListener("change", render); });
+  inLabels.addEventListener("input", render);
 
   Array.prototype.forEach.call(document.querySelectorAll(".stepper button"), function(b){
     b.addEventListener("click", function(){
