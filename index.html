@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sprite Frame — my-not-mad</title>
-<meta name="description" content="Generates an exact-size canvas and isometric wireframe guide for hand-drawn furniture sprites.">
+<meta name="description" content="Generates exact-size canvases and guide wireframes for hand-drawn furniture and character sprites.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
@@ -28,39 +28,48 @@
     font-family:var(--sans);font-size:14px;line-height:1.5;
     -webkit-font-smoothing:antialiased;
   }
-  a{color:var(--shu)}
 
   .frame{min-height:100%;display:flex;flex-direction:column}
 
   /* ---- masthead ---- */
   header{
-    display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
-    padding:20px 24px 16px;border-bottom:1px solid var(--rule);
+    display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+    padding:18px 24px 0;border-bottom:1px solid var(--rule);
   }
   h1{
     font-family:var(--display);font-weight:700;font-size:26px;line-height:1;
-    margin:0;letter-spacing:.06em;
+    margin:0 0 16px;letter-spacing:.06em;
   }
   h1 .mark{color:var(--shu)}
+  header .spacer{flex:1}
   header .sub{
     font-family:var(--mono);font-size:11px;letter-spacing:.14em;
-    text-transform:uppercase;color:var(--muted);
+    text-transform:uppercase;color:var(--muted);margin-bottom:18px;
   }
-  header .spacer{flex:1}
+
+  /* ---- tabs ---- */
+  .tabs{display:flex;gap:2px;align-self:flex-end}
+  .tabs button{
+    background:transparent;border:none;border-bottom:2px solid transparent;
+    color:var(--muted);font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;padding:10px 14px 12px;cursor:pointer;
+    margin-bottom:-1px;transition:color .12s;
+  }
+  .tabs button:hover{color:var(--chalk)}
+  .tabs button[aria-selected=true]{color:var(--chalk);border-bottom-color:var(--shu)}
+  .tabs button:focus-visible{outline:2px solid var(--shu);outline-offset:-4px}
 
   main{flex:1;display:grid;grid-template-columns:340px 1fr;min-height:0}
 
   /* ---- spec column ---- */
-  .spec{
-    border-right:1px solid var(--rule);padding:22px 24px 40px;
-    overflow-y:auto;
-  }
+  .spec{border-right:1px solid var(--rule);padding:22px 24px 40px;overflow-y:auto}
   .legend{
     font-family:var(--mono);font-size:11px;letter-spacing:.16em;
     text-transform:uppercase;color:var(--muted);
     display:flex;align-items:center;gap:10px;margin:0 0 14px;
   }
   .legend::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .panel .legend ~ .legend{margin-top:26px}
 
   .dim{
     display:grid;grid-template-columns:1fr auto;align-items:center;
@@ -68,9 +77,7 @@
   }
   .dim label{display:block}
   .dim .name{font-size:14px}
-  .dim .axis{
-    font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;
-  }
+  .dim .axis{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
   .stepper{display:flex;align-items:center;gap:2px}
   .stepper button{
     width:26px;height:32px;border:1px solid var(--rule);background:transparent;
@@ -97,17 +104,20 @@
   }
   summary::-webkit-details-marker{display:none}
   summary::before{content:"+";color:var(--shu);font-size:13px}
-  details[open] summary::before{content:"−"}
+  details[open] summary::before{content:"\2212"}
   summary::after{content:"";flex:1;height:1px;background:var(--rule)}
   .proj{padding:14px 0 4px}
   .proj .dim{border-bottom:none;padding:6px 0}
   .proj .stepper input{width:78px}
+
   .derived{
     font-family:var(--mono);font-size:11.5px;color:var(--muted);
-    border-left:2px solid var(--rule);padding:8px 0 8px 12px;margin-top:10px;
+    border-left:2px solid var(--rule);padding:8px 0 8px 12px;margin:18px 0 0;
   }
   .derived b{color:var(--chalk);font-weight:500}
-  .switches{margin-top:28px;display:grid;gap:2px}
+  .derived em{color:var(--shu);font-style:normal}
+
+  .switches{margin-top:26px;display:grid;gap:2px}
   .switch{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
     padding:9px 0;border-bottom:1px solid var(--rule);cursor:pointer;
@@ -121,16 +131,17 @@
   }
   .seg button[aria-pressed=true]{background:var(--rule);color:var(--chalk)}
 
+  .panel[hidden]{display:none}
+
   /* ---- sheet ---- */
   .sheet{
     position:relative;min-width:0;display:flex;align-items:center;justify-content:center;
-    padding:40px 40px 96px;overflow:auto;
+    padding:40px 40px 104px;overflow:auto;
     background-color:var(--ink);
     background-image:
       repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px 48px),
       repeating-linear-gradient(to bottom,var(--rule) 0 1px,transparent 1px 48px);
     background-position:center;
-    opacity:1;
   }
   .sheet::before{
     content:"";position:absolute;inset:0;pointer-events:none;
@@ -148,8 +159,9 @@
   .titleblock{
     position:absolute;right:24px;bottom:24px;z-index:2;
     background:var(--sheet);border:1px solid var(--rule);
-    display:grid;grid-template-columns:auto auto;
+    display:flex;flex-direction:column;
   }
+  .tb-row{display:flex;align-items:stretch}
   .tb-cell{padding:9px 14px;border-right:1px solid var(--rule)}
   .tb-cell .k{
     font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
@@ -158,14 +170,14 @@
   .tb-cell .v{font-family:var(--mono);font-size:15px;color:var(--chalk)}
   .tb-cell .v small{font-size:11px;color:var(--muted)}
   button.export{
-    border:none;border-left:1px solid var(--rule);background:var(--shu);color:#fff;
+    border:none;background:var(--shu);color:#fff;
     font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-    padding:0 20px;cursor:pointer;grid-row:span 1;
+    padding:0 20px;cursor:pointer;
   }
   button.export:hover{filter:brightness(1.1)}
   button.export:focus-visible{outline:2px solid var(--chalk);outline-offset:-4px}
   .copyhint{
-    grid-column:1/-1;border-top:1px solid var(--rule);
+    border-top:1px solid var(--rule);
     font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);
     padding:5px 14px;text-align:right;
   }
@@ -173,7 +185,7 @@
   @media (max-width:880px){
     main{grid-template-columns:1fr}
     .spec{border-right:none;border-bottom:1px solid var(--rule)}
-    .sheet{padding:28px 20px 130px;min-height:60vh}
+    .sheet{padding:28px 20px 140px;min-height:60vh}
     .titleblock{right:20px;left:20px;bottom:20px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -182,45 +194,118 @@
 <body>
 <div class="frame">
   <header>
-    <h1><span class="mark">◧</span> Sprite Frame</h1>
+    <h1><span class="mark">&#9711;</span> Sprite Frame</h1>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-furniture" aria-selected="true" aria-controls="spec-furniture">Furniture</button>
+      <button type="button" role="tab" id="tab-character" aria-selected="false" aria-controls="spec-character">Character</button>
+    </div>
     <div class="spacer"></div>
-    <div class="sub">my-not-mad · furniture guide sheet</div>
+    <div class="sub">my-not-mad &middot; guide sheets</div>
   </header>
 
   <main>
     <section class="spec">
-      <p class="legend">Footprint &amp; height</p>
 
-      <div class="dim">
-        <label for="in-w"><span class="name">Width</span><br><span class="axis">along X · toward camera-right</span></label>
-        <div class="stepper">
-          <button type="button" data-step="-1" data-for="in-w" aria-label="Decrease width">−</button>
-          <input id="in-w" type="number" value="1" min="0.05" step="0.25" inputmode="decimal">
-          <button type="button" data-step="1" data-for="in-w" aria-label="Increase width">+</button>
+      <!-- ============ FURNITURE ============ -->
+      <div class="panel" id="spec-furniture" role="tabpanel" aria-labelledby="tab-furniture">
+        <p class="legend">Footprint &amp; height</p>
+
+        <div class="dim">
+          <label for="in-w"><span class="name">Width</span><br><span class="axis">along X &middot; toward camera-right</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-w" aria-label="Decrease width">&minus;</button>
+            <input id="in-w" type="number" value="1" min="0.05" step="0.25" inputmode="decimal">
+            <button type="button" data-step="1" data-for="in-w" aria-label="Increase width">+</button>
+          </div>
+        </div>
+
+        <div class="dim">
+          <label for="in-d"><span class="name">Depth</span><br><span class="axis">along Z &middot; into the screen</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-d" aria-label="Decrease depth">&minus;</button>
+            <input id="in-d" type="number" value="1" min="0.05" step="0.25" inputmode="decimal">
+            <button type="button" data-step="1" data-for="in-d" aria-label="Increase depth">+</button>
+          </div>
+        </div>
+
+        <div class="dim">
+          <label for="in-h"><span class="name">Height</span><br><span class="axis">along Y &middot; upright</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-h" aria-label="Decrease height">&minus;</button>
+            <input id="in-h" type="number" value="1" min="0" step="0.25" inputmode="decimal">
+            <button type="button" data-step="1" data-for="in-h" aria-label="Increase height">+</button>
+          </div>
+        </div>
+
+        <div class="switches">
+          <label class="switch"><span>1-unit grid</span><input id="in-grid" type="checkbox"></label>
+          <label class="switch"><span>Hidden edges dashed</span><input id="in-hidden" type="checkbox" checked></label>
         </div>
       </div>
 
-      <div class="dim">
-        <label for="in-d"><span class="name">Depth</span><br><span class="axis">along Z · into the screen</span></label>
-        <div class="stepper">
-          <button type="button" data-step="-1" data-for="in-d" aria-label="Decrease depth">−</button>
-          <input id="in-d" type="number" value="1" min="0.05" step="0.25" inputmode="decimal">
-          <button type="button" data-step="1" data-for="in-d" aria-label="Increase depth">+</button>
+      <!-- ============ CHARACTER ============ -->
+      <div class="panel" id="spec-character" role="tabpanel" aria-labelledby="tab-character" hidden>
+        <p class="legend">Figure</p>
+
+        <div class="dim">
+          <label for="in-ch"><span class="name">Height</span><br><span class="axis">world units, floor to crown</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-ch" aria-label="Decrease height">&minus;</button>
+            <input id="in-ch" type="number" value="1.7" min="0.1" step="0.1" inputmode="decimal">
+            <button type="button" data-step="1" data-for="in-ch" aria-label="Increase height">+</button>
+          </div>
+        </div>
+
+        <div class="dim">
+          <label for="in-cr"><span class="name">Capsule radius</span><br><span class="axis">world units &middot; draws the stance ellipse</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-cr" aria-label="Decrease radius">&minus;</button>
+            <input id="in-cr" type="number" value="0.5" min="0" step="0.05" inputmode="decimal">
+            <button type="button" data-step="1" data-for="in-cr" aria-label="Increase radius">+</button>
+          </div>
+        </div>
+
+        <div class="dim">
+          <label for="in-heads"><span class="name">Heads tall</span><br><span class="axis">proportion lines &middot; 0 turns them off</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-heads" aria-label="Fewer heads">&minus;</button>
+            <input id="in-heads" type="number" value="6.5" min="0" step="0.5" inputmode="decimal">
+            <button type="button" data-step="1" data-for="in-heads" aria-label="More heads">+</button>
+          </div>
+        </div>
+
+        <p class="legend">Sheet</p>
+
+        <div class="dim">
+          <label for="in-cell"><span class="name">Cell size</span><br><span class="axis">pixels, square &middot; one animation frame</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-cell" aria-label="Smaller cell">&minus;</button>
+            <input id="in-cell" type="number" value="256" min="8" step="32" inputmode="numeric">
+            <button type="button" data-step="1" data-for="in-cell" aria-label="Larger cell">+</button>
+          </div>
+        </div>
+
+        <div class="dim">
+          <label for="in-cols"><span class="name">Columns</span><br><span class="axis">frames per animation</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-cols" aria-label="Fewer columns">&minus;</button>
+            <input id="in-cols" type="number" value="4" min="1" step="1" inputmode="numeric">
+            <button type="button" data-step="1" data-for="in-cols" aria-label="More columns">+</button>
+          </div>
+        </div>
+
+        <div class="dim">
+          <label for="in-rows"><span class="name">Rows</span><br><span class="axis">one animation per row</span></label>
+          <div class="stepper">
+            <button type="button" data-step="-1" data-for="in-rows" aria-label="Fewer rows">&minus;</button>
+            <input id="in-rows" type="number" value="4" min="1" step="1" inputmode="numeric">
+            <button type="button" data-step="1" data-for="in-rows" aria-label="More rows">+</button>
+          </div>
         </div>
       </div>
 
-      <div class="dim">
-        <label for="in-h"><span class="name">Height</span><br><span class="axis">along Y · upright</span></label>
-        <div class="stepper">
-          <button type="button" data-step="-1" data-for="in-h" aria-label="Decrease height">−</button>
-          <input id="in-h" type="number" value="1" min="0" step="0.25" inputmode="decimal">
-          <button type="button" data-step="1" data-for="in-h" aria-label="Increase height">+</button>
-        </div>
-      </div>
-
+      <!-- ============ SHARED ============ -->
       <div class="switches">
-        <label class="switch"><span>1-unit grid</span><input id="in-grid" type="checkbox"></label>
-        <label class="switch"><span>Hidden edges dashed</span><input id="in-hidden" type="checkbox" checked></label>
         <div class="switch" style="cursor:default">
           <span>Export ink</span>
           <div class="seg" id="ink-seg">
@@ -245,21 +330,27 @@
             <label for="in-tilt"><span class="name">Camera tilt</span><br><span class="axis">degrees down</span></label>
             <div class="stepper"><input id="in-tilt" type="number" value="30" min="0" max="89" step="1" inputmode="decimal"></div>
           </div>
-
-          <p class="derived" id="derived"></p>
         </div>
       </details>
+
+      <p class="derived" id="derived"></p>
     </section>
 
     <section class="sheet">
       <div class="stage on-ink" id="stage"><canvas id="preview"></canvas></div>
 
       <div class="titleblock">
-        <div class="tb-cell">
-          <span class="k">Canvas</span>
-          <span class="v" id="out-size">—</span>
+        <div class="tb-row">
+          <div class="tb-cell">
+            <span class="k">Canvas</span>
+            <span class="v" id="out-size">&mdash;</span>
+          </div>
+          <div class="tb-cell" id="tb-extra" hidden>
+            <span class="k" id="out-extra-k">Figure</span>
+            <span class="v" id="out-extra">&mdash;</span>
+          </div>
+          <button class="export" id="download" type="button">Download PNG</button>
         </div>
-        <button class="export" id="download" type="button">Download PNG</button>
         <div class="copyhint" id="copyhint">click size to copy</div>
       </div>
     </section>
@@ -271,16 +362,15 @@
   "use strict";
 
   var $ = function(id){ return document.getElementById(id); };
-  var inW = $("in-w"), inD = $("in-d"), inH = $("in-h");
   var inPPU = $("in-ppu"), inYaw = $("in-yaw"), inTilt = $("in-tilt");
-  var inGrid = $("in-grid"), inHidden = $("in-hidden");
   var stage = $("stage"), preview = $("preview");
-  var outSize = $("out-size"), derived = $("derived");
-  var copyhint = $("copyhint");
-  var ink = "light";       // "light" | "dark"
+  var outSize = $("out-size"), outExtra = $("out-extra"), outExtraK = $("out-extra-k");
+  var tbExtra = $("tb-extra"), derived = $("derived"), copyhint = $("copyhint");
 
   var INK_LIGHT = "#E9EEF8", INK_DARK = "#0E1930";
   var RAD = Math.PI / 180;
+  var ink = "light";        // "light" | "dark"
+  var tab = "furniture";    // "furniture" | "character"
 
   function num(el, fallback, min){
     var v = parseFloat(el.value);
@@ -290,7 +380,7 @@
   }
 
   // Pixels a single world unit travels on screen, in the drawn canvas' own pixels.
-  // The billboard cancels the camera's vertical squash, so drawn px == screen px.
+  // CameraFacingBillboard cancels the camera's vertical squash, so drawn px == screen px.
   function metrics(){
     var ppu  = num(inPPU, 128, 1);
     var yaw  = num(inYaw, 45, 0) * RAD;
@@ -302,14 +392,22 @@
     };
   }
 
-  function spec(){
+  function line(ctx, ax, ay, bx, by){
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  }
+
+  /* ================= furniture ================= */
+
+  var inW = $("in-w"), inD = $("in-d"), inH = $("in-h");
+  var inGrid = $("in-grid"), inHidden = $("in-hidden");
+
+  function furnitureSpec(){
     var L = num(inW, 1, 0.05), W = num(inD, 1, 0.05), H = num(inH, 1, 0);
     var m = metrics();
     var wpx = (L + W) * m.across;
     var hpx = (L + W) * m.rise + H * m.up;
     return {
-      L:L, W:W, H:H, m:m,
-      wpx: wpx, hpx: hpx,
+      L:L, W:W, H:H, m:m, wpx:wpx, hpx:hpx,
       cw: Math.max(1, Math.ceil(wpx)),
       ch: Math.max(1, Math.ceil(hpx))
     };
@@ -323,16 +421,14 @@
     };
   }
 
-  function line(ctx, s, a, b){
+  function edge(ctx, s, a, b){
     var p = project(s, a[0], a[1], a[2]), q = project(s, b[0], b[1], b[2]);
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    ctx.lineTo(q.x, q.y);
-    ctx.stroke();
+    line(ctx, p.x, p.y, q.x, q.y);
   }
 
-  function draw(ctx, s, color, showGrid, dashHidden){
+  function paintFurniture(ctx, s, color){
     var hx = s.L / 2, hz = s.W / 2, H = s.H;
+    var dash = inHidden.checked, t, i;
     ctx.lineCap = "square";
     ctx.strokeStyle = color;
 
@@ -340,63 +436,171 @@
     var near = [-hx, -hz], right = [hx, -hz], far = [hx, hz], left = [-hx, hz];
     var ring = [near, right, far, left];
 
-    if (showGrid){
+    if (inGrid.checked){
       ctx.save();
       ctx.globalAlpha = 0.34;
       ctx.lineWidth = 1;
-      var t;
-      for (t = 1; t < s.L - 1e-6; t++)
-        line(ctx, s, [-hx + t, 0, -hz], [-hx + t, 0, hz]);
-      for (t = 1; t < s.W - 1e-6; t++)
-        line(ctx, s, [-hx, 0, -hz + t], [hx, 0, -hz + t]);
+      for (t = 1; t < s.L - 1e-6; t++) edge(ctx, s, [-hx + t, 0, -hz], [-hx + t, 0, hz]);
+      for (t = 1; t < s.W - 1e-6; t++) edge(ctx, s, [-hx, 0, -hz + t], [hx, 0, -hz + t]);
       for (t = 1; t < H - 1e-6; t++)
-        for (var i = 0; i < 4; i++){
-          var a = ring[i], b = ring[(i + 1) % 4];
-          line(ctx, s, [a[0], t, a[1]], [b[0], t, b[1]]);
-        }
+        for (i = 0; i < 4; i++)
+          edge(ctx, s, [ring[i][0], t, ring[i][1]], [ring[(i+1)%4][0], t, ring[(i+1)%4][1]]);
       ctx.restore();
     }
 
     ctx.lineWidth = 1;
 
     // Hidden: the far corner's post and the two bottom edges behind the box.
-    if (dashHidden){
+    if (dash){
       ctx.save();
       ctx.globalAlpha = 0.5;
       ctx.setLineDash([4, 4]);
-      line(ctx, s, [far[0], 0, far[1]], [far[0], H, far[1]]);
-      line(ctx, s, [right[0], 0, right[1]], [far[0], 0, far[1]]);
-      line(ctx, s, [left[0], 0, left[1]], [far[0], 0, far[1]]);
+      edge(ctx, s, [far[0], 0, far[1]], [far[0], H, far[1]]);
+      edge(ctx, s, [right[0], 0, right[1]], [far[0], 0, far[1]]);
+      edge(ctx, s, [left[0], 0, left[1]], [far[0], 0, far[1]]);
       ctx.restore();
     }
 
-    // Footprint front edges, three visible posts, full top face.
-    line(ctx, s, [near[0], 0, near[1]], [right[0], 0, right[1]]);
-    line(ctx, s, [near[0], 0, near[1]], [left[0], 0, left[1]]);
-    if (!dashHidden){
-      line(ctx, s, [right[0], 0, right[1]], [far[0], 0, far[1]]);
-      line(ctx, s, [left[0], 0, left[1]], [far[0], 0, far[1]]);
-      line(ctx, s, [far[0], 0, far[1]], [far[0], H, far[1]]);
+    edge(ctx, s, [near[0], 0, near[1]], [right[0], 0, right[1]]);
+    edge(ctx, s, [near[0], 0, near[1]], [left[0], 0, left[1]]);
+    if (!dash){
+      edge(ctx, s, [right[0], 0, right[1]], [far[0], 0, far[1]]);
+      edge(ctx, s, [left[0], 0, left[1]], [far[0], 0, far[1]]);
+      edge(ctx, s, [far[0], 0, far[1]], [far[0], H, far[1]]);
     }
     if (H > 0){
-      line(ctx, s, [near[0], 0, near[1]], [near[0], H, near[1]]);
-      line(ctx, s, [right[0], 0, right[1]], [right[0], H, right[1]]);
-      line(ctx, s, [left[0], 0, left[1]], [left[0], H, left[1]]);
-      for (var j = 0; j < 4; j++){
-        var p = ring[j], q = ring[(j + 1) % 4];
-        line(ctx, s, [p[0], H, p[1]], [q[0], H, q[1]]);
+      edge(ctx, s, [near[0], 0, near[1]], [near[0], H, near[1]]);
+      edge(ctx, s, [right[0], 0, right[1]], [right[0], H, right[1]]);
+      edge(ctx, s, [left[0], 0, left[1]], [left[0], H, left[1]]);
+      for (i = 0; i < 4; i++)
+        edge(ctx, s, [ring[i][0], H, ring[i][1]], [ring[(i+1)%4][0], H, ring[(i+1)%4][1]]);
+    }
+  }
+
+  function furnitureReadout(s){
+    return "1 ground unit &rarr; <b>" + s.m.across.toFixed(1) + "</b> px across, <b>" +
+           s.m.rise.toFixed(1) + "</b> px rise<br>1 height unit &rarr; <b>" +
+           s.m.up.toFixed(1) + "</b> px up";
+  }
+
+  function furnitureName(s){
+    return "frame_" + s.L + "x" + s.W + "x" + s.H + "_" + s.cw + "x" + s.ch + ".png";
+  }
+
+  /* ================= character ================= */
+
+  var inCH = $("in-ch"), inCR = $("in-cr"), inHeads = $("in-heads");
+  var inCell = $("in-cell"), inCols = $("in-cols"), inRows = $("in-rows");
+
+  function characterSpec(){
+    var m = metrics();
+    var H = num(inCH, 1.7, 0.1);
+    var r = num(inCR, 0.5, 0);
+    var heads = num(inHeads, 0, 0);
+    var cell = Math.round(num(inCell, 256, 8));
+    var cols = Math.round(num(inCols, 4, 1));
+    var rows = Math.round(num(inRows, 4, 1));
+    return {
+      m:m, H:H, heads:heads, cell:cell, cols:cols, rows:rows,
+      figure: H * m.up,                      // drawn height of the character, px
+      // A ground circle of radius r projects to an axis-aligned ellipse.
+      footX: Math.SQRT2 * r * m.across,
+      footY: Math.SQRT2 * r * m.rise,
+      cw: cell * cols,
+      ch: cell * rows
+    };
+  }
+
+  function paintCharacter(ctx, s, color){
+    var col, row, x0, y0, baseY, midX, capY, n, spacing;
+    ctx.lineCap = "square";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+
+    for (row = 0; row < s.rows; row++){
+      for (col = 0; col < s.cols; col++){
+        x0 = col * s.cell;
+        y0 = row * s.cell;
+        baseY = y0 + s.cell;      // pivot row: bottom-centre, so the feet sit here
+        midX  = x0 + s.cell / 2;
+        capY  = baseY - s.figure;
+
+        // cell boundary
+        ctx.save();
+        ctx.globalAlpha = 0.32;
+        ctx.setLineDash([3, 5]);
+        ctx.strokeRect(x0 + 0.5, y0 + 0.5, s.cell - 1, s.cell - 1);
+        ctx.restore();
+
+        // centre line
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        line(ctx, midX, y0, midX, baseY);
+        ctx.restore();
+
+        // head divisions, counted down from the crown so the part-head lands at the feet
+        if (s.heads >= 1 && s.figure > 0){
+          spacing = s.figure / s.heads;
+          ctx.save();
+          ctx.globalAlpha = 0.36;
+          for (n = 1; n < s.heads; n++){
+            line(ctx, x0 + s.cell * 0.18, capY + n * spacing, x0 + s.cell * 0.82, capY + n * spacing);
+          }
+          ctx.restore();
+        }
+
+        // stance ellipse: the capsule's footprint on the floor
+        if (s.footX > 0 && s.footY > 0){
+          ctx.save();
+          ctx.globalAlpha = 0.55;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.ellipse(midX, baseY, s.footX, s.footY, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // crown line and ground line: the two measurements that matter
+        if (capY > y0) line(ctx, x0, capY, x0 + s.cell, capY);
+        line(ctx, x0, baseY - 0.5, x0 + s.cell, baseY - 0.5);
       }
     }
   }
 
+  function characterReadout(s){
+    var over = s.figure > s.cell;
+    return "figure <b>" + Math.round(s.figure) + "</b> px tall in a <b>" + s.cell +
+           "</b> px cell" + (over ? " &mdash; <em>taller than the cell</em>" : "") +
+           "<br>stance ellipse <b>" + Math.round(s.footX * 2) + " &times; " +
+           Math.round(s.footY * 2) + "</b> px<br>1 height unit &rarr; <b>" +
+           s.m.up.toFixed(1) + "</b> px up";
+  }
+
+  function characterName(s){
+    return "char_h" + s.H + "_cell" + s.cell + "_" + s.cols + "x" + s.rows + ".png";
+  }
+
+  /* ================= shared ================= */
+
+  var MODES = {
+    furniture: { spec: furnitureSpec, paint: paintFurniture,
+                 readout: furnitureReadout, name: furnitureName, extra: null },
+    character: { spec: characterSpec, paint: paintCharacter,
+                 readout: characterReadout, name: characterName,
+                 extra: function(s){
+                   return { k: "Figure", v: Math.round(s.figure) + " <small>px</small>" };
+                 } }
+  };
+
   function render(){
-    var s = spec();
+    var mode = MODES[tab];
+    var s = mode.spec();
     var color = ink === "dark" ? INK_DARK : INK_LIGHT;
     stage.className = "stage " + (ink === "dark" ? "on-paper" : "on-ink");
 
     // Fit the preview into the sheet without ever upscaling past 1:1.
     var box = stage.parentNode.getBoundingClientRect();
-    var avail = { w: Math.max(120, box.width - 80), h: Math.max(120, box.height - 140) };
+    var avail = { w: Math.max(120, box.width - 80), h: Math.max(120, box.height - 150) };
     var scale = Math.min(1, avail.w / s.cw, avail.h / s.ch);
     var dpr = window.devicePixelRatio || 1;
 
@@ -407,31 +611,40 @@
 
     var ctx = preview.getContext("2d");
     ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
-    draw(ctx, s, color, inGrid.checked, inHidden.checked);
+    mode.paint(ctx, s, color);
 
-    outSize.innerHTML = s.cw + " × " + s.ch + " <small>px</small>";
-    derived.innerHTML =
-      "1 ground unit → <b>" + s.m.across.toFixed(1) + "</b> px across, <b>" +
-      s.m.rise.toFixed(1) + "</b> px rise<br>1 height unit → <b>" +
-      s.m.up.toFixed(1) + "</b> px up<br>preview at <b>" +
-      Math.round(scale * 100) + "%</b>";
+    outSize.innerHTML = s.cw + " &times; " + s.ch + " <small>px</small>";
+    var extra = mode.extra && mode.extra(s);
+    tbExtra.hidden = !extra;
+    if (extra){ outExtraK.textContent = extra.k; outExtra.innerHTML = extra.v; }
+
+    derived.innerHTML = mode.readout(s) + "<br>preview at <b>" + Math.round(scale * 100) + "%</b>";
     copyhint.textContent = "click size to copy";
   }
 
   function exportPNG(){
-    var s = spec();
+    var mode = MODES[tab];
+    var s = mode.spec();
     var c = document.createElement("canvas");
     c.width = s.cw; c.height = s.ch;
-    draw(c.getContext("2d"), s, ink === "dark" ? INK_DARK : INK_LIGHT,
-         inGrid.checked, inHidden.checked);
+    mode.paint(c.getContext("2d"), s, ink === "dark" ? INK_DARK : INK_LIGHT);
     var a = document.createElement("a");
-    a.download = "frame_" + s.L + "x" + s.W + "x" + s.H + "_" + s.cw + "x" + s.ch + ".png";
+    a.download = mode.name(s);
     a.href = c.toDataURL("image/png");
     a.click();
   }
 
-  // ---- wiring ----
-  [inW, inD, inH, inPPU, inYaw, inTilt].forEach(function(el){
+  function setTab(next){
+    tab = next;
+    ["furniture", "character"].forEach(function(t){
+      $("tab-" + t).setAttribute("aria-selected", String(t === next));
+      $("spec-" + t).hidden = (t !== next);
+    });
+    render();
+  }
+
+  /* ---- wiring ---- */
+  Array.prototype.forEach.call(document.querySelectorAll("input[type=number]"), function(el){
     el.addEventListener("input", render);
   });
   [inGrid, inHidden].forEach(function(el){ el.addEventListener("change", render); });
@@ -456,11 +669,13 @@
     });
   });
 
+  $("tab-furniture").addEventListener("click", function(){ setTab("furniture"); });
+  $("tab-character").addEventListener("click", function(){ setTab("character"); });
   $("download").addEventListener("click", exportPNG);
 
   outSize.style.cursor = "pointer";
   outSize.addEventListener("click", function(){
-    var s = spec();
+    var s = MODES[tab].spec();
     navigator.clipboard.writeText(s.cw + " x " + s.ch).then(function(){
       copyhint.textContent = "copied";
     }, function(){
@@ -469,7 +684,7 @@
   });
 
   window.addEventListener("resize", render);
-  render();
+  setTab("furniture");
 })();
 </script>
 </body>

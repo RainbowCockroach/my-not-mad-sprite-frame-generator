@@ -1,13 +1,25 @@
 # my-not-mad-sprite-frame-generator
 
-A one-page utility for drawing furniture sprites for **my-not-mad-2.5** (Unity, 2.5D top-down, orthographic camera at 45° yaw / 30° tilt, PPU 128).
+Two guide-sheet generators for **my-not-mad-2.5** (Unity, 2.5D top-down, orthographic camera at 45° yaw / 30° tilt, PPU 128). Both give you an exact-size canvas and a transparent PNG to trace over, then delete.
 
-Type the footprint a piece of furniture occupies — **width (X)**, **depth (Z)**, **height (Y)** in world units — and it gives you:
+## Furniture tab
 
-- the exact canvas size in pixels, and
-- a transparent PNG guide with the projected box wireframe: footprint diamond flush to the canvas bottom, the vertical edges, and the top face. Hidden edges are dashed.
+Type the footprint a piece occupies — **width (X)**, **depth (Z)**, **height (Y)** in world units — and get the projected box: footprint diamond flush to the canvas bottom, the vertical edges, the top face, hidden edges dashed.
 
-Drop the PNG into your art tool as its own layer, trace the silhouette, then delete the layer. The guide is drawn so the near footprint corner sits on the bottom edge and the drawing is horizontally centred — the anchoring `Furniture.prefab` expects (export at PPU 128, Pivot Bottom, Filter Point).
+The guide is drawn so the near footprint corner sits on the bottom edge and the drawing is horizontally centred — what `Furniture.prefab` expects (import at PPU 128, Pivot Bottom, Filter Point).
+
+## Character tab
+
+Type the character's **height** in world units and get a sprite sheet template: a grid of square cells with, in each one,
+
+- a **ground line** on the cell's bottom edge — the bottom-centre pivot, so the feet go here;
+- a **crown line** at `height × 110.9` px, which is how tall the figure has to be drawn to stand correctly next to 3D walls and furniture;
+- **head-division lines** for figure proportions (set to 0 to hide them);
+- a dashed **stance ellipse** — the CapsuleCollider's radius projected onto the floor, so you can see how wide a pose can get before the drawing overhangs what actually collides.
+
+Columns and rows tile the same guide across a whole sheet: Akane's is 4 × 4 cells of 256 px.
+
+Character height is the *drawn* height, not the collider height. In a top-down game only the capsule's radius really affects gameplay, so a taller character is mostly a drawing change.
 
 ## Live app
 
