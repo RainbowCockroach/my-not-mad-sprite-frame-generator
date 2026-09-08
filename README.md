@@ -23,12 +23,10 @@ Screen offset per world unit, with `S` = pixels per unit, `ψ` = camera yaw, `θ
 | ground Z | `−cos ψ · S` | `sin θ · sin ψ · S` |
 | height Y | `0` | `cos θ · S` |
 
-which gives `90.5`, `45.3` and `110.9` px at the project's current camera. Canvas is then
+which gives `90.5`, `45.3` and `110.9` px at the project's current camera — checked against Game view. Canvas is then
 `(W + D) · across` wide by `(W + D) · rise + H · up` tall.
 
 Height uses `cos θ` rather than the full `S` because `CameraFacingBillboard` cancels the tilt squash, so one drawn pixel is one screen pixel — a sprite therefore has to match what the camera actually renders for 3D geometry of the same height.
-
-The **Legacy 30° lines** preset reproduces the older `90 / 52 / 128` numbers recorded in the game repo's `CLAUDE.md`, for comparing against sprites already drawn to them.
 
 Yaw, tilt and pixels-per-unit are editable, so a camera change means changing the numbers here, not the code.
 

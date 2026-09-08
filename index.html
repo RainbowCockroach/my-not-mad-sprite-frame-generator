@@ -107,17 +107,6 @@
     border-left:2px solid var(--rule);padding:8px 0 8px 12px;margin-top:10px;
   }
   .derived b{color:var(--chalk);font-weight:500}
-  .preset{
-    display:flex;gap:8px;margin-top:14px;
-  }
-  .preset button{
-    flex:1;padding:7px 8px;background:transparent;border:1px solid var(--rule);
-    color:var(--muted);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
-    text-transform:uppercase;cursor:pointer;
-  }
-  .preset button[aria-pressed=true]{border-color:var(--shu);color:var(--chalk)}
-  .note{font-size:12px;color:var(--muted);margin-top:12px}
-
   .switches{margin-top:28px;display:grid;gap:2px}
   .switch{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -257,13 +246,7 @@
             <div class="stepper"><input id="in-tilt" type="number" value="30" min="0" max="89" step="1" inputmode="decimal"></div>
           </div>
 
-          <div class="preset">
-            <button type="button" id="p-exact" aria-pressed="true">Exact projection</button>
-            <button type="button" id="p-legacy" aria-pressed="false">Legacy 30° lines</button>
-          </div>
-
           <p class="derived" id="derived"></p>
-          <p class="note" id="preset-note"></p>
         </div>
       </details>
     </section>
@@ -292,9 +275,8 @@
   var inPPU = $("in-ppu"), inYaw = $("in-yaw"), inTilt = $("in-tilt");
   var inGrid = $("in-grid"), inHidden = $("in-hidden");
   var stage = $("stage"), preview = $("preview");
-  var outSize = $("out-size"), derived = $("derived"), presetNote = $("preset-note");
+  var outSize = $("out-size"), derived = $("derived");
   var copyhint = $("copyhint");
-  var mode = "exact";      // "exact" | "legacy"
   var ink = "light";       // "light" | "dark"
 
   var INK_LIGHT = "#E9EEF8", INK_DARK = "#0E1930";
@@ -313,16 +295,11 @@
     var ppu  = num(inPPU, 128, 1);
     var yaw  = num(inYaw, 45, 0) * RAD;
     var tilt = num(inTilt, 30, 0) * RAD;
-    var across = Math.cos(yaw) * ppu;                 // ground unit, horizontal
-    var rise, up;
-    if (mode === "legacy") {
-      rise = across * Math.tan(tilt);                 // CLAUDE.md's "~30° lines"
-      up   = ppu;                                     // CLAUDE.md's 128 px per height unit
-    } else {
-      rise = Math.sin(tilt) * Math.sin(yaw) * ppu;    // ground unit, vertical
-      up   = Math.cos(tilt) * ppu;                    // height unit, vertical
-    }
-    return { across: across, rise: rise, up: up };
+    return {
+      across: Math.cos(yaw) * ppu,                   // ground unit, horizontal
+      rise:   Math.sin(tilt) * Math.sin(yaw) * ppu,  // ground unit, vertical
+      up:     Math.cos(tilt) * ppu                   // height unit, vertical
+    };
   }
 
   function spec(){
@@ -453,16 +430,6 @@
     a.click();
   }
 
-  function setPreset(next){
-    mode = next;
-    $("p-exact").setAttribute("aria-pressed", String(mode === "exact"));
-    $("p-legacy").setAttribute("aria-pressed", String(mode === "legacy"));
-    presetNote.textContent = mode === "exact"
-      ? "Derived straight from the camera angles."
-      : "Reproduces the 90 / 52 / 128 numbers noted in CLAUDE.md. They assume 30° ground lines and no tilt loss on height, so a legacy frame is slightly taller than the camera actually renders.";
-    render();
-  }
-
   // ---- wiring ----
   [inW, inD, inH, inPPU, inYaw, inTilt].forEach(function(el){
     el.addEventListener("input", render);
@@ -489,8 +456,6 @@
     });
   });
 
-  $("p-exact").addEventListener("click", function(){ setPreset("exact"); });
-  $("p-legacy").addEventListener("click", function(){ setPreset("legacy"); });
   $("download").addEventListener("click", exportPNG);
 
   outSize.style.cursor = "pointer";
@@ -504,7 +469,7 @@
   });
 
   window.addEventListener("resize", render);
-  setPreset("exact");
+  render();
 })();
 </script>
 </body>
