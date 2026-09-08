@@ -248,7 +248,7 @@
         <p class="legend">Figure</p>
 
         <div class="dim">
-          <label for="in-ch"><span class="name">Height</span><br><span class="axis">world units, floor to crown</span></label>
+          <label for="in-ch"><span class="name">Height</span><br><span class="axis">metres, floor to crown</span></label>
           <div class="stepper">
             <button type="button" data-step="-1" data-for="in-ch" aria-label="Decrease height">&minus;</button>
             <input id="in-ch" type="number" value="1.7" min="0.1" step="0.1" inputmode="decimal">
@@ -256,52 +256,31 @@
           </div>
         </div>
 
-        <div class="dim">
-          <label for="in-cr"><span class="name">Capsule radius</span><br><span class="axis">world units &middot; draws the stance ellipse</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-cr" aria-label="Decrease radius">&minus;</button>
-            <input id="in-cr" type="number" value="0.5" min="0" step="0.05" inputmode="decimal">
-            <button type="button" data-step="1" data-for="in-cr" aria-label="Increase radius">+</button>
+        <details>
+          <summary>Sheet &amp; guides</summary>
+          <div class="proj">
+            <div class="dim">
+              <label for="in-heads"><span class="name">Heads tall</span><br><span class="axis">proportion lines &middot; 0 hides them</span></label>
+              <div class="stepper"><input id="in-heads" type="number" value="0" min="0" step="0.5" inputmode="decimal"></div>
+            </div>
+            <div class="dim">
+              <label for="in-cr"><span class="name">Stance radius</span><br><span class="axis">metres &middot; the capsule on the floor</span></label>
+              <div class="stepper"><input id="in-cr" type="number" value="0.5" min="0" step="0.05" inputmode="decimal"></div>
+            </div>
+            <div class="dim">
+              <label for="in-cell"><span class="name">Cell size</span><br><span class="axis">pixels, square</span></label>
+              <div class="stepper"><input id="in-cell" type="number" value="256" min="8" step="32" inputmode="numeric"></div>
+            </div>
+            <div class="dim">
+              <label for="in-cols"><span class="name">Columns</span></label>
+              <div class="stepper"><input id="in-cols" type="number" value="1" min="1" step="1" inputmode="numeric"></div>
+            </div>
+            <div class="dim">
+              <label for="in-rows"><span class="name">Rows</span></label>
+              <div class="stepper"><input id="in-rows" type="number" value="1" min="1" step="1" inputmode="numeric"></div>
+            </div>
           </div>
-        </div>
-
-        <div class="dim">
-          <label for="in-heads"><span class="name">Heads tall</span><br><span class="axis">proportion lines &middot; 0 turns them off</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-heads" aria-label="Fewer heads">&minus;</button>
-            <input id="in-heads" type="number" value="6.5" min="0" step="0.5" inputmode="decimal">
-            <button type="button" data-step="1" data-for="in-heads" aria-label="More heads">+</button>
-          </div>
-        </div>
-
-        <p class="legend">Sheet</p>
-
-        <div class="dim">
-          <label for="in-cell"><span class="name">Cell size</span><br><span class="axis">pixels, square &middot; one animation frame</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-cell" aria-label="Smaller cell">&minus;</button>
-            <input id="in-cell" type="number" value="256" min="8" step="32" inputmode="numeric">
-            <button type="button" data-step="1" data-for="in-cell" aria-label="Larger cell">+</button>
-          </div>
-        </div>
-
-        <div class="dim">
-          <label for="in-cols"><span class="name">Columns</span><br><span class="axis">frames per animation</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-cols" aria-label="Fewer columns">&minus;</button>
-            <input id="in-cols" type="number" value="4" min="1" step="1" inputmode="numeric">
-            <button type="button" data-step="1" data-for="in-cols" aria-label="More columns">+</button>
-          </div>
-        </div>
-
-        <div class="dim">
-          <label for="in-rows"><span class="name">Rows</span><br><span class="axis">one animation per row</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-rows" aria-label="Fewer rows">&minus;</button>
-            <input id="in-rows" type="number" value="4" min="1" step="1" inputmode="numeric">
-            <button type="button" data-step="1" data-for="in-rows" aria-label="More rows">+</button>
-          </div>
-        </div>
+        </details>
       </div>
 
       <!-- ============ SHARED ============ -->
@@ -498,8 +477,8 @@
     var r = num(inCR, 0.5, 0);
     var heads = num(inHeads, 0, 0);
     var cell = Math.round(num(inCell, 256, 8));
-    var cols = Math.round(num(inCols, 4, 1));
-    var rows = Math.round(num(inRows, 4, 1));
+    var cols = Math.round(num(inCols, 1, 1));
+    var rows = Math.round(num(inRows, 1, 1));
     return {
       m:m, H:H, heads:heads, cell:cell, cols:cols, rows:rows,
       figure: H * m.up,                      // drawn height of the character, px
@@ -563,21 +542,32 @@
         // crown line and ground line: the two measurements that matter
         if (capY > y0) line(ctx, x0, capY, x0 + s.cell, capY);
         line(ctx, x0, baseY - 0.5, x0 + s.cell, baseY - 0.5);
+
+        // caption, so the sheet still explains itself once it is in the art tool
+        if (s.cell >= 96){
+          ctx.save();
+          ctx.globalAlpha = 0.6;
+          ctx.fillStyle = color;
+          ctx.font = "11px ui-monospace, Menlo, Consolas, monospace";
+          ctx.textBaseline = "top";
+          ctx.fillText(s.H.toFixed(2) + " m", x0 + 7, y0 + 6);
+          ctx.restore();
+        }
       }
     }
   }
 
   function characterReadout(s){
     var over = s.figure > s.cell;
-    return "figure <b>" + Math.round(s.figure) + "</b> px tall in a <b>" + s.cell +
-           "</b> px cell" + (over ? " &mdash; <em>taller than the cell</em>" : "") +
-           "<br>stance ellipse <b>" + Math.round(s.footX * 2) + " &times; " +
-           Math.round(s.footY * 2) + "</b> px<br>1 height unit &rarr; <b>" +
-           s.m.up.toFixed(1) + "</b> px up";
+    return "draw the figure <b>" + Math.round(s.figure) + "</b> px tall<br>" +
+           (over ? "<em>the cell is too short &mdash; raise the cell size</em><br>" : "") +
+           "feet fit inside <b>" + Math.round(s.footX * 2) + " &times; " +
+           Math.round(s.footY * 2) + "</b> px<br>1 metre &rarr; <b>" +
+           s.m.up.toFixed(1) + "</b> px";
   }
 
   function characterName(s){
-    return "char_h" + s.H + "_cell" + s.cell + "_" + s.cols + "x" + s.rows + ".png";
+    return "char_" + s.H + "m_cell" + s.cell + "_" + s.cols + "x" + s.rows + ".png";
   }
 
   /* ================= shared ================= */

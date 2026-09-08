@@ -10,14 +10,13 @@ The guide is drawn so the near footprint corner sits on the bottom edge and the 
 
 ## Character tab
 
-Type the character's **height** in world units and get a sprite sheet template: a grid of square cells with, in each one,
+Type the character's **height in metres** — one world unit is one metre — and get a frame to draw in. That is the only field the artist needs; everything else has a working default under **Sheet & guides**. The frame carries:
 
 - a **ground line** on the cell's bottom edge — the bottom-centre pivot, so the feet go here;
 - a **crown line** at `height × 110.9` px, which is how tall the figure has to be drawn to stand correctly next to 3D walls and furniture;
-- **head-division lines** for figure proportions (set to 0 to hide them);
 - a dashed **stance ellipse** — the CapsuleCollider's radius projected onto the floor, so you can see how wide a pose can get before the drawing overhangs what actually collides.
 
-Columns and rows tile the same guide across a whole sheet: Akane's is 4 × 4 cells of 256 px.
+Under **Sheet & guides**: head-division lines for figure proportions (off by default), the stance radius, the cell size, and columns/rows to tile the same frame into a full sheet — Akane's is 4 × 4 cells of 256 px.
 
 Character height is the *drawn* height, not the collider height. In a top-down game only the capsule's radius really affects gameplay, so a taller character is mostly a drawing change.
 
