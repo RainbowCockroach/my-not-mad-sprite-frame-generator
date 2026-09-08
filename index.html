@@ -504,6 +504,13 @@
         midX  = x0 + s.cell / 2;
         capY  = baseY - s.figure;
 
+        // The stance ellipse straddles the ground line, so keep every cell's
+        // guide inside its own cell instead of bleeding into the row below.
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x0, y0, s.cell, s.cell);
+        ctx.clip();
+
         // cell boundary
         ctx.save();
         ctx.globalAlpha = 0.32;
@@ -553,6 +560,8 @@
           ctx.fillText(s.H.toFixed(2) + " m", x0 + 7, y0 + 6);
           ctx.restore();
         }
+
+        ctx.restore();   // cell clip
       }
     }
   }
