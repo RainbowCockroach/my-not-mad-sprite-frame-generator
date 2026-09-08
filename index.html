@@ -272,12 +272,12 @@
               <div class="stepper"><input id="in-cell" type="number" value="256" min="8" step="32" inputmode="numeric"></div>
             </div>
             <div class="dim">
-              <label for="in-cols"><span class="name">Columns</span></label>
-              <div class="stepper"><input id="in-cols" type="number" value="1" min="1" step="1" inputmode="numeric"></div>
+              <label for="in-cols"><span class="name">Columns</span><br><span class="axis">frames per animation</span></label>
+              <div class="stepper"><input id="in-cols" type="number" value="4" min="1" step="1" inputmode="numeric"></div>
             </div>
             <div class="dim">
-              <label for="in-rows"><span class="name">Rows</span></label>
-              <div class="stepper"><input id="in-rows" type="number" value="1" min="1" step="1" inputmode="numeric"></div>
+              <label for="in-rows"><span class="name">Rows</span><br><span class="axis">one animation per row</span></label>
+              <div class="stepper"><input id="in-rows" type="number" value="4" min="1" step="1" inputmode="numeric"></div>
             </div>
           </div>
         </details>
@@ -477,8 +477,8 @@
     var r = num(inCR, 0.5, 0);
     var heads = num(inHeads, 0, 0);
     var cell = Math.round(num(inCell, 256, 8));
-    var cols = Math.round(num(inCols, 1, 1));
-    var rows = Math.round(num(inRows, 1, 1));
+    var cols = Math.round(num(inCols, 4, 1));
+    var rows = Math.round(num(inRows, 4, 1));
     return {
       m:m, H:H, heads:heads, cell:cell, cols:cols, rows:rows,
       figure: H * m.up,                      // drawn height of the character, px
@@ -560,6 +560,7 @@
   function characterReadout(s){
     var over = s.figure > s.cell;
     return "draw the figure <b>" + Math.round(s.figure) + "</b> px tall<br>" +
+           "sheet of <b>" + s.cols + " &times; " + s.rows + "</b> cells at <b>" + s.cell + "</b> px<br>" +
            (over ? "<em>the cell is too short &mdash; raise the cell size</em><br>" : "") +
            "feet fit inside <b>" + Math.round(s.footX * 2) + " &times; " +
            Math.round(s.footY * 2) + "</b> px<br>1 metre &rarr; <b>" +
