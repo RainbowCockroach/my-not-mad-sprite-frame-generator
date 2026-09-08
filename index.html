@@ -78,20 +78,54 @@
   .dim label{display:block}
   .dim .name{font-size:14px}
   .dim .axis{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
-  .stepper{display:flex;align-items:center;gap:2px}
+  .stepper{display:flex;align-items:center;gap:4px}
   .stepper button{
-    width:26px;height:32px;border:1px solid var(--rule);background:transparent;
-    color:var(--muted);font-family:var(--mono);font-size:14px;cursor:pointer;
-    transition:color .12s,border-color .12s;
+    width:38px;height:40px;flex:none;
+    border:1px solid var(--rule);background:transparent;color:var(--muted);
+    font-family:var(--mono);font-size:17px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    touch-action:manipulation;-webkit-user-select:none;user-select:none;
+    transition:color .12s,border-color .12s,background .12s;
   }
   .stepper button:hover{color:var(--chalk);border-color:var(--muted)}
+  .stepper button.held{background:var(--rule);color:var(--chalk);border-color:var(--muted)}
+  .stepper button:disabled{opacity:.3;cursor:default;background:transparent;color:var(--muted)}
+
+  /* the value itself is a scrub surface: drag sideways to change it */
+  .field{position:relative;flex:none;line-height:0}
   .stepper input{
-    width:66px;height:32px;text-align:center;background:var(--sheet);
+    width:84px;height:40px;text-align:center;background:var(--sheet);
     border:1px solid var(--rule);color:var(--chalk);
-    font-family:var(--mono);font-size:15px;
+    font-family:var(--mono);font-size:16px;
+    touch-action:pan-y;cursor:ew-resize;
   }
+  .field::after{
+    content:"";position:absolute;left:50%;bottom:6px;width:20px;height:0;
+    transform:translateX(-50%);border-top:2px dotted var(--muted);
+    opacity:.45;pointer-events:none;transition:opacity .12s;
+  }
+  .field.scrub::after{opacity:0}
+  .stepper input.scrub{border-color:var(--shu);color:var(--shu);background:var(--ink);-webkit-user-select:none;user-select:none}
+  .bubble{
+    position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%);
+    background:var(--shu);color:#fff;font-family:var(--mono);font-size:12.5px;
+    letter-spacing:.04em;line-height:1.3;padding:5px 10px;white-space:nowrap;
+    pointer-events:none;opacity:0;transition:opacity .1s;z-index:6;
+  }
+  .bubble b{font-weight:500}
+  .bubble i{font-style:normal;opacity:.72;font-size:10.5px;letter-spacing:.1em}
+  .bubble::after{
+    content:"";position:absolute;left:50%;top:100%;margin-left:-5px;
+    border:5px solid transparent;border-top-color:var(--shu);
+  }
+  .bubble.on{opacity:1}
   .stepper input:focus-visible,.stepper button:focus-visible,
   summary:focus-visible,.switch:focus-within{outline:2px solid var(--shu);outline-offset:2px}
+
+  .usehint{
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);border-left:2px solid var(--shu);padding:5px 0 5px 10px;margin:0 0 18px;
+  }
   input[type=number]{-moz-appearance:textfield}
   input[type=number]::-webkit-outer-spin-button,
   input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -115,7 +149,6 @@
   .text-in:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
   .proj{padding:14px 0 4px}
   .proj .dim{border-bottom:none;padding:6px 0}
-  .proj .stepper input{width:78px}
 
   .derived{
     font-family:var(--mono);font-size:11.5px;color:var(--muted);
@@ -191,6 +224,10 @@
 
   @media (max-width:880px){
     main{grid-template-columns:1fr}
+    .dim{grid-template-columns:1fr;gap:8px;padding:12px 0}
+    .dim .stepper{justify-content:flex-start}
+    .stepper button{width:52px;height:48px;font-size:19px}
+    .stepper input{width:110px;height:48px;font-size:18px}
     .spec{border-right:none;border-bottom:1px solid var(--rule)}
     .sheet{padding:28px 20px 140px;min-height:60vh}
     .titleblock{right:20px;left:20px;bottom:20px}
@@ -212,6 +249,7 @@
 
   <main>
     <section class="spec">
+      <p class="usehint">Drag a value sideways to scrub &middot; keep dragging down for finer steps &middot; tap to type &middot; hold &minus;/+ to repeat</p>
 
       <!-- ============ FURNITURE ============ -->
       <div class="panel" id="spec-furniture" role="tabpanel" aria-labelledby="tab-furniture">
@@ -219,29 +257,17 @@
 
         <div class="dim">
           <label for="in-w"><span class="name">Width</span><br><span class="axis">along X &middot; toward camera-right</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-w" aria-label="Decrease width">&minus;</button>
-            <input id="in-w" type="number" value="1" min="0.05" step="0.25" inputmode="decimal">
-            <button type="button" data-step="1" data-for="in-w" aria-label="Increase width">+</button>
-          </div>
+          <div class="stepper"><input id="in-w" type="number" value="1" min="0.05" step="0.25" inputmode="decimal"></div>
         </div>
 
         <div class="dim">
           <label for="in-d"><span class="name">Depth</span><br><span class="axis">along Z &middot; into the screen</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-d" aria-label="Decrease depth">&minus;</button>
-            <input id="in-d" type="number" value="1" min="0.05" step="0.25" inputmode="decimal">
-            <button type="button" data-step="1" data-for="in-d" aria-label="Increase depth">+</button>
-          </div>
+          <div class="stepper"><input id="in-d" type="number" value="1" min="0.05" step="0.25" inputmode="decimal"></div>
         </div>
 
         <div class="dim">
           <label for="in-h"><span class="name">Height</span><br><span class="axis">along Y &middot; upright</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-h" aria-label="Decrease height">&minus;</button>
-            <input id="in-h" type="number" value="1" min="0" step="0.25" inputmode="decimal">
-            <button type="button" data-step="1" data-for="in-h" aria-label="Increase height">+</button>
-          </div>
+          <div class="stepper"><input id="in-h" type="number" value="1" min="0" step="0.25" inputmode="decimal"></div>
         </div>
 
         <div class="switches">
@@ -256,11 +282,7 @@
 
         <div class="dim">
           <label for="in-ch"><span class="name">Height</span><br><span class="axis">metres, floor to crown</span></label>
-          <div class="stepper">
-            <button type="button" data-step="-1" data-for="in-ch" aria-label="Decrease height">&minus;</button>
-            <input id="in-ch" type="number" value="1.7" min="0.1" step="0.1" inputmode="decimal">
-            <button type="button" data-step="1" data-for="in-ch" aria-label="Increase height">+</button>
-          </div>
+          <div class="stepper"><input id="in-ch" type="number" value="1.7" min="0.1" step="0.1" inputmode="decimal"></div>
         </div>
 
         <details>
@@ -299,8 +321,8 @@
         <div class="switch" style="cursor:default">
           <span>Export ink</span>
           <div class="seg" id="ink-seg">
-            <button type="button" data-ink="light" aria-pressed="true">Light</button>
-            <button type="button" data-ink="dark" aria-pressed="false">Dark</button>
+            <button type="button" data-ink="light" aria-pressed="false">Light</button>
+            <button type="button" data-ink="dark" aria-pressed="true">Dark</button>
           </div>
         </div>
       </div>
@@ -359,7 +381,7 @@
 
   var INK_LIGHT = "#E9EEF8", INK_DARK = "#0E1930";
   var RAD = Math.PI / 180;
-  var ink = "light";        // "light" | "dark"
+  var ink = "dark";         // "light" | "dark" — dark ink on a paper sheet by default
   var tab = "furniture";    // "furniture" | "character"
 
   function num(el, fallback, min){
@@ -694,22 +716,171 @@
     render();
   }
 
+  /* ================= number fields =================
+     Each one is a scrub field: drag it sideways to change the value, keep
+     dragging away from the row for finer steps, tap to type, hold the -/+
+     keys to repeat with acceleration, or roll the wheel over a focused field. */
+
+  var syncers = [];
+  function syncSteppers(){ for (var i = 0; i < syncers.length; i++) syncers[i](); }
+
+  function buzz(ms){
+    if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} }
+  }
+  function stepOf(el){
+    var st = parseFloat(el.step);
+    return isFinite(st) && st > 0 ? st : 1;
+  }
+  function decimalsOf(step){
+    var s = String(step), dot = s.indexOf(".");
+    return dot < 0 ? 0 : s.length - 1 - dot;
+  }
+  function clampTo(el, v){
+    var mn = parseFloat(el.min), mx = parseFloat(el.max);
+    if (isFinite(mn) && v < mn) v = mn;
+    if (isFinite(mx) && v > mx) v = mx;
+    return v;
+  }
+  function readVal(el){
+    var v = parseFloat(el.value);
+    return isFinite(v) ? v : (parseFloat(el.defaultValue) || 0);
+  }
+  // Returns true when the value actually moved, so callers can buzz / stop repeating.
+  function writeVal(el, v){
+    var next = String(parseFloat(clampTo(el, v).toFixed(decimalsOf(stepOf(el)))));
+    if (next === el.value) return false;
+    el.value = next;
+    syncSteppers();
+    render();
+    return true;
+  }
+  function nudge(el, mult){ return writeVal(el, readVal(el) + mult * stepOf(el)); }
+
+  function stepButton(el, dir, name){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = dir < 0 ? "−" : "+";
+    b.setAttribute("aria-label", (dir < 0 ? "Decrease " : "Increase ") + name);
+
+    var hold = null, repeat = null, ticks = 0;
+    function stop(){
+      clearTimeout(hold); clearInterval(repeat);
+      hold = repeat = null; ticks = 0;
+      b.classList.remove("held");
+    }
+    function tick(){
+      ticks++;
+      var mult = ticks > 26 ? 5 : ticks > 10 ? 2 : 1;   // accelerate on a long hold
+      if (nudge(el, dir * mult)) buzz(4); else stop();
+    }
+    b.addEventListener("pointerdown", function(e){
+      if (e.button) return;
+      e.preventDefault();                                // no focus ring hijack, no double-tap zoom
+      b.classList.add("held");
+      if (nudge(el, dir)) buzz(8);
+      hold = setTimeout(function(){ repeat = setInterval(tick, 70); }, 380);
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function(t){
+      b.addEventListener(t, stop);
+    });
+    b.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (nudge(el, dir)) buzz(8); }
+    });
+    return b;
+  }
+
+  var DEAD_ZONE = 6;      // px of travel before a tap becomes a drag
+  var COARSE_PX = 16;     // px of drag per step at the row's own height
+  var FINE_SPAN = 150;    // px away from the row that buys the finest steps
+
+  function makeScrub(el, bubble, field){
+    var origin = null, moved = false, startVal = 0, pid = null;
+
+    el.addEventListener("pointerdown", function(e){
+      if (e.button) return;
+      e.preventDefault();                                // suppress the caret until we know it's a tap
+      origin = { x: e.clientX, y: e.clientY };
+      startVal = readVal(el);
+      moved = false;
+      pid = e.pointerId;
+    });
+
+    el.addEventListener("pointermove", function(e){
+      if (!origin || e.pointerId !== pid) return;
+      var dx = e.clientX - origin.x, dy = Math.abs(e.clientY - origin.y);
+      if (!moved){
+        if (Math.abs(dx) < DEAD_ZONE) return;
+        moved = true;
+        try { el.setPointerCapture(pid); } catch (err) {}
+        el.blur();
+        el.classList.add("scrub"); field.classList.add("scrub");
+      }
+      var perStep = COARSE_PX + Math.min(dy, FINE_SPAN) * 1.2;
+      if (writeVal(el, startVal + Math.round(dx / perStep) * stepOf(el))) buzz(3);
+      bubble.innerHTML = "<b>" + el.value + "</b>" +
+        (dy > 40 ? " <i>FINE</i>" : " <i>&plusmn;" + stepOf(el) + "</i>");
+      bubble.classList.add("on");
+    });
+
+    function end(){
+      if (!origin) return;
+      origin = null;
+      if (moved){
+        try { el.releasePointerCapture(pid); } catch (err) {}
+        el.classList.remove("scrub"); field.classList.remove("scrub");
+        bubble.classList.remove("on");
+      } else {
+        el.focus();
+        el.select();                                     // a tap hands the whole value to the keypad
+      }
+      pid = null;
+    }
+    ["pointerup", "pointercancel"].forEach(function(t){ el.addEventListener(t, end); });
+
+    el.addEventListener("wheel", function(e){
+      if (document.activeElement !== el) return;
+      e.preventDefault();
+      nudge(el, e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".stepper"), function(stepper){
+    var el = stepper.querySelector("input[type=number]");
+    if (!el) return;
+    var row = el.closest(".dim");
+    var nameEl = row && row.querySelector(".name");
+    var name = nameEl ? nameEl.textContent.toLowerCase() : "value";
+
+    var field = document.createElement("div");
+    field.className = "field";
+    var bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.setAttribute("aria-hidden", "true");
+    stepper.insertBefore(field, el);
+    field.appendChild(el);
+    field.appendChild(bubble);
+
+    var minus = stepButton(el, -1, name), plus = stepButton(el, 1, name);
+    stepper.insertBefore(minus, field);
+    stepper.appendChild(plus);
+
+    syncers.push(function(){
+      var mn = parseFloat(el.min), mx = parseFloat(el.max), v = readVal(el);
+      minus.disabled = isFinite(mn) && v <= mn;
+      plus.disabled  = isFinite(mx) && v >= mx;
+    });
+  });
+
   /* ---- wiring ---- */
   Array.prototype.forEach.call(document.querySelectorAll("input[type=number]"), function(el){
-    el.addEventListener("input", render);
+    el.addEventListener("input", function(){ syncSteppers(); render(); });
+    el.addEventListener("blur", function(){
+      if (el.value.trim() === "") { el.value = el.defaultValue; syncSteppers(); render(); }
+    });
   });
   [inGrid, inHidden].forEach(function(el){ el.addEventListener("change", render); });
   inLabels.addEventListener("input", render);
-
-  Array.prototype.forEach.call(document.querySelectorAll(".stepper button"), function(b){
-    b.addEventListener("click", function(){
-      var el = $(b.dataset.for);
-      var step = parseFloat(el.step) * parseFloat(b.dataset.step);
-      var min = parseFloat(el.min);
-      el.value = Math.max(min, Math.round((num(el, 1, min) + step) * 1000) / 1000);
-      render();
-    });
-  });
+  syncSteppers();
 
   Array.prototype.forEach.call(document.querySelectorAll("#ink-seg button"), function(b){
     b.addEventListener("click", function(){
