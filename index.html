@@ -282,7 +282,12 @@
 
         <div class="dim">
           <label for="in-ch"><span class="name">Height</span><br><span class="axis">metres, floor to crown</span></label>
-          <div class="stepper"><input id="in-ch" type="number" value="1.7" min="0.1" step="0.01" inputmode="decimal"></div>
+          <div class="stepper"><input id="in-ch" type="number" value="1.72" min="0.1" step="0.01" inputmode="decimal"></div>
+        </div>
+
+        <div class="dim">
+          <label for="in-heads"><span class="name">Heads tall</span><br><span class="axis">3 is chibi &middot; 7.5 is realistic</span></label>
+          <div class="stepper"><input id="in-heads" type="number" value="3" min="2" max="8" step="0.5" inputmode="decimal"></div>
         </div>
 
         <p class="legend">Gait</p>
@@ -299,17 +304,14 @@
 
         <div class="switches">
           <label class="switch"><span>Pose template</span><input id="in-pose" type="checkbox" checked></label>
+          <label class="switch"><span>Head lines</span><input id="in-headlines" type="checkbox"></label>
         </div>
 
         <details>
           <summary>Sheet &amp; guides</summary>
           <div class="proj">
             <div class="dim">
-              <label for="in-heads"><span class="name">Heads tall</span><br><span class="axis">proportion lines &middot; 0 hides them</span></label>
-              <div class="stepper"><input id="in-heads" type="number" value="0" min="0" step="0.5" inputmode="decimal"></div>
-            </div>
-            <div class="dim">
-              <label for="in-step"><span class="name">Step length</span><br><span class="axis">metres &middot; 0 works it out from height</span></label>
+              <label for="in-step"><span class="name">Step length</span><br><span class="axis">metres &middot; 0 works it out from the legs</span></label>
               <div class="stepper"><input id="in-step" type="number" value="0" min="0" step="0.05" inputmode="decimal"></div>
             </div>
             <div class="dim">
@@ -533,13 +535,14 @@
   var inCell = $("in-cell"), inCols = $("in-cols"), inRows = $("in-rows");
   var inLabels = $("in-labels");
   var inWalk = $("in-walk"), inRun = $("in-run"), inStep = $("in-step");
-  var inMargin = $("in-margin"), inPose = $("in-pose");
+  var inMargin = $("in-margin"), inPose = $("in-pose"), inHeadLines = $("in-headlines");
 
-  // Gait model. At an everyday 1.4 m/s an adult's step is about 0.415 x height;
-  // faster gaits lengthen the step with the square root of speed, so a 6 m/s
-  // sprint lands near 0.86 x height. Rule of thumb, tuned for looks, not biomechanics.
+  // Gait model. Step length follows leg length, not height: at an everyday 1.4 m/s
+  // a step is about 0.85 x leg (0.415 x height on a realistic adult), and faster
+  // gaits lengthen it with the square root of speed. Short chibi legs therefore
+  // take short, quick steps. Rule of thumb, tuned for looks, not biomechanics.
   var STANDARD_WALK_SPEED = 1.4;
-  var STEP_PER_HEIGHT = 0.415;
+  var STEP_PER_LEG = 0.85;
   var STEPS_PER_LOOP = 2;
   // Below this a clip reads as a slideshow, above it the legs blur into a scramble.
   var SMOOTH_FPS_MIN = 6, SMOOTH_FPS_MAX = 15;
@@ -555,7 +558,8 @@
     var m = metrics();
     var H = num(inCH, 1.7, 0.1);
     var r = num(inCR, 0.5, 0);
-    var heads = num(inHeads, 0, 0);
+    var heads = Math.min(8, num(inHeads, 3, 2));
+    var leg = legRatioFor(heads) * H;
     var cell = Math.round(num(inCell, 256, 8));
     var cols = Math.round(num(inCols, 8, 1));
     var rows = Math.round(num(inRows, 4, 1));
@@ -568,7 +572,7 @@
       var speed = pair[1];
       var step = stepOverride > 0 && pair[0] === "walk"
         ? stepOverride
-        : STEP_PER_HEIGHT * H * Math.sqrt(speed / STANDARD_WALK_SPEED);
+        : STEP_PER_LEG * leg * Math.sqrt(speed / STANDARD_WALK_SPEED);
       var loopSeconds = STEPS_PER_LOOP * step / speed;
       var exactFps = cols / loopSeconds;
       var samples = Math.max(1, Math.round(exactFps));
@@ -584,14 +588,14 @@
     });
 
     var margin = Math.min(Math.round(num(inMargin, 40, 0)), cell);
-    // Near foot of a camera-facing walk: half a step ahead, plus the foot itself.
+    // Near foot of a camera-facing walk: half a step ahead, plus the foot and hip width.
     var deepestGait = gaits.run.used ? gaits.run : gaits.walk;
-    var nearFootDrop = Math.ceil((footReachFor(deepestGait, H) + 0.2 * H) * m.rise);
+    var nearFootDrop = Math.ceil((footReachFor(deepestGait, leg) + 0.4 * leg) * m.rise);
 
     return {
-      m:m, H:H, heads:heads, cell:cell, cols:cols, rows:rows,
+      m:m, H:H, heads:heads, leg:leg, cell:cell, cols:cols, rows:rows,
       labels: labels, gaits: gaits, margin: margin, nearFootDrop: nearFootDrop,
-      showPose: inPose.checked,
+      showPose: inPose.checked, showHeadLines: inHeadLines.checked,
       figure: H * m.up,                      // drawn height of the character, px
       // A ground circle of radius r projects to an axis-aligned ellipse.
       footX: Math.SQRT2 * r * m.across,
@@ -603,8 +607,15 @@
 
   // How far a foot lands ahead of the hip. A walk lands half a step ahead; a run
   // covers the rest of its long step in the air, so the foot never lands that far out.
-  function footReachFor(gait, H){
-    return Math.min(gait.step / 2, 0.24 * H);
+  function footReachFor(gait, leg){
+    return Math.min(gait.step / 2, 0.49 * leg);
+  }
+
+  // Hip height as a share of total height. Measured points: 2 heads 0.25,
+  // 3 heads 0.33 (chibi), 7.5 heads 0.49 (realistic adult); straight lines between.
+  function legRatioFor(heads){
+    if (heads <= 3) return 0.25 + 0.08 * (heads - 2);
+    return Math.min(0.5, 0.33 + 0.16 * (heads - 3) / 4.5);
   }
 
   function gaitKeyFor(label){
@@ -652,7 +663,7 @@
         ctx.restore();
 
         // head divisions, counted down from the crown so the part-head lands at the feet
-        if (s.heads >= 1 && s.figure > 0){
+        if (s.showHeadLines && s.figure > 0){
           spacing = s.figure / s.heads;
           ctx.save();
           ctx.globalAlpha = 0.36;
@@ -747,11 +758,16 @@
     var gait = pose.gait;
     var isRun = !!(gait && gait.isRun);
     var angle = 2 * Math.PI * pose.phase;
-    var halfStride = gait ? footReachFor(gait, H) : 0;
-    var lift = gait ? (isRun ? 0.16 : 0.06) * H : 0;
-    var ankleHeight = 0.04 * H, footLength = 0.13 * H;
-    var legBone = 0.255 * H, armBone = 0.18 * H;
-    var hipHalfWidth = 0.05 * H, shoulderHalfWidth = 0.11 * H;
+    var halfStride = gait ? footReachFor(gait, s.leg) : 0;
+    // Proportions come from leg length and head count, so one figure covers a
+    // 3-head chibi and a 7.5-head adult. The torso is whatever height is left.
+    var legLength = s.leg;
+    var headHeight = H / s.heads;
+    var torsoLength = H - headHeight - legLength;
+    var lift = gait ? (isRun ? 0.33 : 0.12) * legLength : 0;
+    var ankleHeight = 0.08 * legLength, footLength = 0.27 * legLength;
+    var legBone = 0.48 * legLength;
+    var hipHalfWidth = 0.1 * legLength, shoulderHalfWidth = 0.3 * torsoLength;
 
     // Planted legs sweep back, the swinging leg comes forward lifted.
     var legs = [
@@ -761,15 +777,17 @@
 
     // The hip sinks so a nearly straight planted leg still reaches its foot: the
     // natural bob. A standing knee keeps a little slack, holding the bob to ~4 cm.
-    var hipHeight = 0.49 * H;
+    var hipHeight = legLength - ankleHeight;
     legs.forEach(function(leg){
-      if (leg.lift > 0.005 * H) return;
+      if (leg.lift > 0.01 * legLength) return;
       hipHeight = Math.min(hipHeight, Math.sqrt(4 * legBone * legBone - leg.offset * leg.offset));
     });
     var pelvisHeight = hipHeight + ankleHeight;
-    var shoulderHeight = pelvisHeight + 0.29 * H;
-    var neckHeight = pelvisHeight + 0.33 * H;
-    var headRadius = 0.065 * H;
+    var neckHeight = pelvisHeight + torsoLength;
+    var shoulderHeight = neckHeight - 0.12 * torsoLength;
+    var headRadius = headHeight / 2;
+    var armReach = 1.05 * (shoulderHeight - pelvisHeight);
+    var armBone = armReach / 2 / 0.97;
 
     function toScreen(forward, side, height){
       return {
@@ -805,7 +823,7 @@
 
       // Arms swing against the leg on the same side; a run bends them up at the elbow.
       var handForward = -leg.offset * (isRun ? 0.9 : 0.5);
-      var handHeight = shoulderHeight - (isRun ? 0.22 : 0.34) * H;
+      var handHeight = shoulderHeight - armReach * (isRun ? 0.65 : 0.97);
       limb(alpha, shoulderSide, armBone, 0, shoulderHeight, handForward, handHeight, false);
     }
 
@@ -825,7 +843,7 @@
     var shoulderNear = toScreen(0, shoulderHalfWidth, shoulderHeight);
     line(ctx, shoulderFar.x, shoulderFar.y, shoulderNear.x, shoulderNear.y);
 
-    var head = toScreen(0, 0, neckHeight + headRadius * 1.1);
+    var head = toScreen(0, 0, neckHeight + headRadius);
     ctx.beginPath();
     ctx.arc(head.x, head.y, headRadius * m.up, 0, Math.PI * 2);
     ctx.stroke();
@@ -840,7 +858,9 @@
 
   function characterReadout(s){
     var over = s.figure + s.margin > s.cell;
-    var text = "draw the figure <b>" + Math.round(s.figure) + "</b> px tall<br>" +
+    var text = "draw the figure <b>" + Math.round(s.figure) + "</b> px tall, head <b>" +
+           Math.round(s.figure / s.heads) + "</b> px<br>" +
+           "legs <b>" + s.leg.toFixed(2) + "</b> m, hip at <b>" + Math.round(s.leg * s.m.up) + "</b> px<br>" +
            "sheet of <b>" + s.cols + " &times; " + s.rows + "</b> cells at <b>" + s.cell + "</b> px<br>" +
            (over ? "<em>the cell is too short &mdash; raise the cell size</em><br>" : "") +
            "feet fit inside <b>" + Math.round(s.footX * 2) + " &times; " +
@@ -861,7 +881,8 @@
         text += "<br><em>" + g.samples + " fps looks choppy &mdash; draw " +
                 Math.ceil(s.cols * SMOOTH_FPS_MIN / fps) + "+ frames</em>";
       if (fps > SMOOTH_FPS_MAX)
-        text += "<br><em>" + g.samples + " fps looks frantic &mdash; fewer frames or a run row</em>";
+        text += "<br><em>" + g.samples + " fps looks frantic &mdash; draw this one on its own sheet with " +
+                Math.max(2, Math.round(s.cols * 12 / fps)) + " columns</em>";
       if (!g.used) text += "<br><em>no row is labelled &ldquo;" + key + "&rdquo;</em>";
     });
 
@@ -1105,7 +1126,7 @@
       if (el.value.trim() === "") { el.value = el.defaultValue; syncSteppers(); render(); }
     });
   });
-  [inGrid, inHidden, inPose].forEach(function(el){ el.addEventListener("change", render); });
+  [inGrid, inHidden, inPose, inHeadLines].forEach(function(el){ el.addEventListener("change", render); });
   inLabels.addEventListener("input", render);
   syncSteppers();
 
