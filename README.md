@@ -17,7 +17,7 @@ Type the character's **height in metres** (one world unit is one metre, measured
 - a **facing arrow** on the floor and a **row label**, so each row says which way the character looks. The arrow follows the camera's 2:1 ground angle, and points screen-left by default because `PlayerVisual` sets `flipX` when moving camera-right — the art is drawn facing left and mirrored at runtime. A label containing “back” aims it away from the camera, “right” mirrors it;
 - a dashed **stance ellipse** — the CapsuleCollider's radius projected onto the floor, so you can see how wide a pose can get before the drawing overhangs what actually collides.
 
-The default sheet is **8 × 4 cells of 256 px**: one animation per row, eight frames across, in the order front idle, front walk, back idle, back walk. Under **Sheet & guides** you can change columns, rows and cell size, set the stance radius, or switch on **Head lines** to divide the figure into head-heights.
+The default sheet is **6 × 4 cells of 256 px**: one animation per row, six frames across, in the order front idle, front walk, back idle, back walk. Under **Sheet & guides** you can change columns, rows and cell size, set the stance radius, or switch on **Head lines** to divide the figure into head-heights.
 
 Character height is the *drawn* height, not the collider height. In a top-down game only the capsule's radius really affects gameplay, so a taller character is mostly a drawing change.
 

@@ -332,7 +332,7 @@
             </div>
             <div class="dim">
               <label for="in-cols"><span class="name">Columns</span><br><span class="axis">frames per animation</span></label>
-              <div class="stepper"><input id="in-cols" type="number" value="8" min="1" step="1" inputmode="numeric"></div>
+              <div class="stepper"><input id="in-cols" type="number" value="6" min="1" step="1" inputmode="numeric"></div>
             </div>
             <div class="dim">
               <label for="in-rows"><span class="name">Rows</span><br><span class="axis">one animation per row</span></label>
@@ -561,7 +561,7 @@
     var heads = Math.min(8, num(inHeads, 3, 2));
     var leg = legRatioFor(heads) * H;
     var cell = Math.round(num(inCell, 256, 8));
-    var cols = Math.round(num(inCols, 8, 1));
+    var cols = Math.round(num(inCols, 6, 1));
     var rows = Math.round(num(inRows, 4, 1));
     var stepOverride = num(inStep, 0, 0);
     var labels = inLabels.value.split(",").map(function(t){ return t.trim(); });
