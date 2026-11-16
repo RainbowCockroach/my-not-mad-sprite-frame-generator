@@ -282,7 +282,23 @@
 
         <div class="dim">
           <label for="in-ch"><span class="name">Height</span><br><span class="axis">metres, floor to crown</span></label>
-          <div class="stepper"><input id="in-ch" type="number" value="1.7" min="0.1" step="0.1" inputmode="decimal"></div>
+          <div class="stepper"><input id="in-ch" type="number" value="1.7" min="0.1" step="0.01" inputmode="decimal"></div>
+        </div>
+
+        <p class="legend">Gait</p>
+
+        <div class="dim">
+          <label for="in-walk"><span class="name">Walk speed</span><br><span class="axis">m/s &middot; 1.4 is an everyday pace</span></label>
+          <div class="stepper"><input id="in-walk" type="number" value="1.4" min="0.3" step="0.1" inputmode="decimal"></div>
+        </div>
+
+        <div class="dim">
+          <label for="in-run"><span class="name">Run speed</span><br><span class="axis">m/s &middot; for rows labelled "run"</span></label>
+          <div class="stepper"><input id="in-run" type="number" value="3.5" min="0.5" step="0.1" inputmode="decimal"></div>
+        </div>
+
+        <div class="switches">
+          <label class="switch"><span>Pose template</span><input id="in-pose" type="checkbox" checked></label>
         </div>
 
         <details>
@@ -291,6 +307,14 @@
             <div class="dim">
               <label for="in-heads"><span class="name">Heads tall</span><br><span class="axis">proportion lines &middot; 0 hides them</span></label>
               <div class="stepper"><input id="in-heads" type="number" value="0" min="0" step="0.5" inputmode="decimal"></div>
+            </div>
+            <div class="dim">
+              <label for="in-step"><span class="name">Step length</span><br><span class="axis">metres &middot; 0 works it out from height</span></label>
+              <div class="stepper"><input id="in-step" type="number" value="0" min="0" step="0.05" inputmode="decimal"></div>
+            </div>
+            <div class="dim">
+              <label for="in-margin"><span class="name">Floor margin</span><br><span class="axis">px below the feet &middot; room for the near foot</span></label>
+              <div class="stepper"><input id="in-margin" type="number" value="40" min="0" step="8" inputmode="numeric"></div>
             </div>
             <div class="dim">
               <label for="in-cr"><span class="name">Stance radius</span><br><span class="axis">metres &middot; the capsule on the floor</span></label>
@@ -306,7 +330,7 @@
             </div>
             <div class="dim">
               <label for="in-cols"><span class="name">Columns</span><br><span class="axis">frames per animation</span></label>
-              <div class="stepper"><input id="in-cols" type="number" value="4" min="1" step="1" inputmode="numeric"></div>
+              <div class="stepper"><input id="in-cols" type="number" value="8" min="1" step="1" inputmode="numeric"></div>
             </div>
             <div class="dim">
               <label for="in-rows"><span class="name">Rows</span><br><span class="axis">one animation per row</span></label>
@@ -360,6 +384,10 @@
           <div class="tb-cell" id="tb-extra" hidden>
             <span class="k" id="out-extra-k">Figure</span>
             <span class="v" id="out-extra">&mdash;</span>
+          </div>
+          <div class="tb-cell" id="tb-clip" hidden>
+            <span class="k">Walk clip</span>
+            <span class="v" id="out-clip">&mdash;</span>
           </div>
           <button class="export" id="download" type="button">Download PNG</button>
         </div>
@@ -504,6 +532,17 @@
   var inCH = $("in-ch"), inCR = $("in-cr"), inHeads = $("in-heads");
   var inCell = $("in-cell"), inCols = $("in-cols"), inRows = $("in-rows");
   var inLabels = $("in-labels");
+  var inWalk = $("in-walk"), inRun = $("in-run"), inStep = $("in-step");
+  var inMargin = $("in-margin"), inPose = $("in-pose");
+
+  // Gait model. At an everyday 1.4 m/s an adult's step is about 0.415 x height;
+  // faster gaits lengthen the step with the square root of speed, so a 6 m/s
+  // sprint lands near 0.86 x height. Rule of thumb, tuned for looks, not biomechanics.
+  var STANDARD_WALK_SPEED = 1.4;
+  var STEP_PER_HEIGHT = 0.415;
+  var STEPS_PER_LOOP = 2;
+  // Below this a clip reads as a slideshow, above it the legs blur into a scramble.
+  var SMOOTH_FPS_MIN = 6, SMOOTH_FPS_MAX = 15;
 
   // A row label decides which way the drawing looks. Unflipped art faces
   // screen-left, because PlayerVisual sets flipX when moving camera-right.
@@ -518,11 +557,41 @@
     var r = num(inCR, 0.5, 0);
     var heads = num(inHeads, 0, 0);
     var cell = Math.round(num(inCell, 256, 8));
-    var cols = Math.round(num(inCols, 4, 1));
+    var cols = Math.round(num(inCols, 8, 1));
     var rows = Math.round(num(inRows, 4, 1));
+    var stepOverride = num(inStep, 0, 0);
+    var labels = inLabels.value.split(",").map(function(t){ return t.trim(); });
+
+    // Every clip must cover exactly STEPS_PER_LOOP steps per loop, or the feet slide.
+    var gaits = {};
+    [["walk", num(inWalk, STANDARD_WALK_SPEED, 0.3)], ["run", num(inRun, 3.5, 0.5)]].forEach(function(pair){
+      var speed = pair[1];
+      var step = stepOverride > 0 && pair[0] === "walk"
+        ? stepOverride
+        : STEP_PER_HEIGHT * H * Math.sqrt(speed / STANDARD_WALK_SPEED);
+      var loopSeconds = STEPS_PER_LOOP * step / speed;
+      var exactFps = cols / loopSeconds;
+      var samples = Math.max(1, Math.round(exactFps));
+      gaits[pair[0]] = {
+        name: pair[0], speed: speed, step: step,
+        stepsPerMinute: 60 * speed / step,
+        samples: samples,
+        // The speed the rounded clip really animates at: what Unity divides by.
+        baseSpeed: STEPS_PER_LOOP * step * samples / cols,
+        isRun: pair[0] === "run",
+        used: labels.some(function(l){ return gaitKeyFor(l) === pair[0]; })
+      };
+    });
+
+    var margin = Math.min(Math.round(num(inMargin, 40, 0)), cell);
+    // Near foot of a camera-facing walk: half a step ahead, plus the foot itself.
+    var deepestGait = gaits.run.used ? gaits.run : gaits.walk;
+    var nearFootDrop = Math.ceil((footReachFor(deepestGait, H) + 0.2 * H) * m.rise);
+
     return {
       m:m, H:H, heads:heads, cell:cell, cols:cols, rows:rows,
-      labels: inLabels.value.split(",").map(function(t){ return t.trim(); }),
+      labels: labels, gaits: gaits, margin: margin, nearFootDrop: nearFootDrop,
+      showPose: inPose.checked,
       figure: H * m.up,                      // drawn height of the character, px
       // A ground circle of radius r projects to an axis-aligned ellipse.
       footX: Math.SQRT2 * r * m.across,
@@ -530,6 +599,19 @@
       cw: cell * cols,
       ch: cell * rows
     };
+  }
+
+  // How far a foot lands ahead of the hip. A walk lands half a step ahead; a run
+  // covers the rest of its long step in the air, so the foot never lands that far out.
+  function footReachFor(gait, H){
+    return Math.min(gait.step / 2, 0.24 * H);
+  }
+
+  function gaitKeyFor(label){
+    var t = (label || "").toLowerCase();
+    if (t.indexOf("run") >= 0) return "run";
+    if (t.indexOf("walk") >= 0) return "walk";
+    return null;
   }
 
   function paintCharacter(ctx, s, color){
@@ -545,7 +627,7 @@
       for (col = 0; col < s.cols; col++){
         x0 = col * s.cell;
         y0 = row * s.cell;
-        baseY = y0 + s.cell;      // pivot row: bottom-centre, so the feet sit here
+        baseY = y0 + s.cell - s.margin;   // the pivot: the feet stand here
         midX  = x0 + s.cell / 2;
         capY  = baseY - s.figure;
 
@@ -634,23 +716,164 @@
           ctx.restore();
         }
 
+        if (s.showPose){
+          var gaitKey = gaitKeyFor(label);
+          paintMannequin(ctx, s, {
+            hipX: midX, groundY: baseY, face: face,
+            gait: gaitKey ? s.gaits[gaitKey] : null,
+            phase: col / s.cols
+          }, color);
+        }
+
         ctx.restore();   // cell clip
       }
     }
   }
 
+  // A ghost figure to trace over: one pose per frame, with the feet placed exactly
+  // where the step length puts them on the projected floor. Column 0 is the
+  // near leg's contact, then passing, then the far leg's contact, then passing.
+  // Joints are solved in metres and projected afterwards: solving them in screen
+  // pixels lets the squashed floor fold the knees of a figure walking away.
+  function paintMannequin(ctx, s, pose, color){
+    var H = s.H, m = s.m;
+    var fx = pose.face.right ? 1 : -1, fy = pose.face.away ? -1 : 1;
+
+    // Pixels per metre along the walk direction, and across it toward the camera.
+    var forwardX = fx * m.across, forwardY = fy * m.rise;
+    var sideX = fy * m.across, sideY = -fx * m.rise;
+    if (sideY < 0){ sideX = -sideX; sideY = -sideY; }
+
+    var gait = pose.gait;
+    var isRun = !!(gait && gait.isRun);
+    var angle = 2 * Math.PI * pose.phase;
+    var halfStride = gait ? footReachFor(gait, H) : 0;
+    var lift = gait ? (isRun ? 0.16 : 0.06) * H : 0;
+    var ankleHeight = 0.04 * H, footLength = 0.13 * H;
+    var legBone = 0.255 * H, armBone = 0.18 * H;
+    var hipHalfWidth = 0.05 * H, shoulderHalfWidth = 0.11 * H;
+
+    // Planted legs sweep back, the swinging leg comes forward lifted.
+    var legs = [
+      { side: 1,  offset:  Math.cos(angle) * halfStride, lift: Math.max(0, -Math.sin(angle)) * lift },
+      { side: -1, offset: -Math.cos(angle) * halfStride, lift: Math.max(0,  Math.sin(angle)) * lift }
+    ];
+
+    // The hip sinks so a nearly straight planted leg still reaches its foot: the
+    // natural bob. A standing knee keeps a little slack, holding the bob to ~4 cm.
+    var hipHeight = 0.49 * H;
+    legs.forEach(function(leg){
+      if (leg.lift > 0.005 * H) return;
+      hipHeight = Math.min(hipHeight, Math.sqrt(4 * legBone * legBone - leg.offset * leg.offset));
+    });
+    var pelvisHeight = hipHeight + ankleHeight;
+    var shoulderHeight = pelvisHeight + 0.29 * H;
+    var neckHeight = pelvisHeight + 0.33 * H;
+    var headRadius = 0.065 * H;
+
+    function toScreen(forward, side, height){
+      return {
+        x: pose.hipX + forward * forwardX + side * sideX,
+        y: pose.groundY + forward * forwardY + side * sideY - height * m.up
+      };
+    }
+
+    // Two equal bones from root to end, the middle joint bent forward (knee) or back (elbow).
+    function limb(alpha, side, bone, rootForward, rootHeight, endForward, endHeight, bendsForward){
+      var df = endForward - rootForward, dh = endHeight - rootHeight;
+      var length = Math.sqrt(df * df + dh * dh) || 1e-6;
+      var bend = Math.sqrt(Math.max(0, bone * bone - length * length / 4));
+      var perpForward = -dh / length, perpHeight = df / length;
+      if ((perpForward > 0) !== bendsForward){ perpForward = -perpForward; perpHeight = -perpHeight; }
+      var root = toScreen(rootForward, side, rootHeight);
+      var joint = toScreen((rootForward + endForward) / 2 + perpForward * bend, side,
+                           (rootHeight + endHeight) / 2 + perpHeight * bend);
+      var end = toScreen(endForward, side, endHeight);
+      ctx.globalAlpha = alpha;
+      ctx.beginPath(); ctx.moveTo(root.x, root.y); ctx.lineTo(joint.x, joint.y); ctx.lineTo(end.x, end.y); ctx.stroke();
+    }
+
+    function drawSide(sign){
+      var leg = sign > 0 ? legs[0] : legs[1];
+      var alpha = sign > 0 ? 0.65 : 0.3;
+      var hipSide = sign * hipHalfWidth, shoulderSide = sign * shoulderHalfWidth;
+
+      limb(alpha, hipSide, legBone, 0, pelvisHeight, leg.offset, ankleHeight + leg.lift, true);
+      var heel = toScreen(leg.offset, hipSide, leg.lift);
+      var toe = toScreen(leg.offset + footLength, hipSide, leg.lift);
+      line(ctx, heel.x, heel.y, toe.x, toe.y);
+
+      // Arms swing against the leg on the same side; a run bends them up at the elbow.
+      var handForward = -leg.offset * (isRun ? 0.9 : 0.5);
+      var handHeight = shoulderHeight - (isRun ? 0.22 : 0.34) * H;
+      limb(alpha, shoulderSide, armBone, 0, shoulderHeight, handForward, handHeight, false);
+    }
+
+    ctx.save();
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = color;
+
+    drawSide(-1);
+
+    ctx.globalAlpha = 0.65;
+    var pelvis = toScreen(0, 0, pelvisHeight), neck = toScreen(0, 0, neckHeight);
+    line(ctx, pelvis.x, pelvis.y, neck.x, neck.y);
+    var hipFar = toScreen(0, -hipHalfWidth, pelvisHeight), hipNear = toScreen(0, hipHalfWidth, pelvisHeight);
+    line(ctx, hipFar.x, hipFar.y, hipNear.x, hipNear.y);
+    var shoulderFar = toScreen(0, -shoulderHalfWidth, shoulderHeight);
+    var shoulderNear = toScreen(0, shoulderHalfWidth, shoulderHeight);
+    line(ctx, shoulderFar.x, shoulderFar.y, shoulderNear.x, shoulderNear.y);
+
+    var head = toScreen(0, 0, neckHeight + headRadius * 1.1);
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, headRadius * m.up, 0, Math.PI * 2);
+    ctx.stroke();
+    // Nose tick, so the figure shows where it looks.
+    var noseRoot = toScreen(headRadius * 0.8, 0, neckHeight + headRadius);
+    var noseTip = toScreen(headRadius * 1.6, 0, neckHeight + headRadius * 0.9);
+    line(ctx, noseRoot.x, noseRoot.y, noseTip.x, noseTip.y);
+
+    drawSide(1);
+    ctx.restore();
+  }
+
   function characterReadout(s){
-    var over = s.figure > s.cell;
-    return "draw the figure <b>" + Math.round(s.figure) + "</b> px tall<br>" +
+    var over = s.figure + s.margin > s.cell;
+    var text = "draw the figure <b>" + Math.round(s.figure) + "</b> px tall<br>" +
            "sheet of <b>" + s.cols + " &times; " + s.rows + "</b> cells at <b>" + s.cell + "</b> px<br>" +
            (over ? "<em>the cell is too short &mdash; raise the cell size</em><br>" : "") +
            "feet fit inside <b>" + Math.round(s.footX * 2) + " &times; " +
            Math.round(s.footY * 2) + "</b> px<br>1 metre &rarr; <b>" +
            s.m.up.toFixed(1) + "</b> px";
+
+    ["walk", "run"].forEach(function(key){
+      var g = s.gaits[key];
+      if (key === "run" && !g.used) return;
+      var fps = s.cols * g.speed / (STEPS_PER_LOOP * g.step);
+      text += "<br><br><b>" + key + "</b> " + g.speed.toFixed(1) + " m/s &middot; step <b>" +
+              g.step.toFixed(2) + "</b> m &middot; " + Math.round(g.stepsPerMinute) + " steps/min<br>" +
+              "one step moves the body <b>" + Math.round(g.step * s.m.across) + "</b> &times; <b>" +
+              Math.round(g.step * s.m.rise) + "</b> px<br>" +
+              "Unity &rarr; Samples <b>" + g.samples + "</b> &middot; base speed <b>" +
+              g.baseSpeed.toFixed(2) + "</b> m/s";
+      if (fps < SMOOTH_FPS_MIN)
+        text += "<br><em>" + g.samples + " fps looks choppy &mdash; draw " +
+                Math.ceil(s.cols * SMOOTH_FPS_MIN / fps) + "+ frames</em>";
+      if (fps > SMOOTH_FPS_MAX)
+        text += "<br><em>" + g.samples + " fps looks frantic &mdash; fewer frames or a run row</em>";
+      if (!g.used) text += "<br><em>no row is labelled &ldquo;" + key + "&rdquo;</em>";
+    });
+
+    text += "<br><br>Unity pivot &rarr; Custom X <b>0.5</b> Y <b>" +
+            parseFloat((s.margin / s.cell).toFixed(4)) + "</b>";
+    if (s.nearFootDrop > s.margin)
+      text += "<br><em>the near foot reaches " + s.nearFootDrop + " px below the pivot &mdash; raise the floor margin</em>";
+    return text;
   }
 
   function characterName(s){
-    return "char_" + s.H + "m_cell" + s.cell + "_" + s.cols + "x" + s.rows + ".png";
+    return "char_" + s.H + "m_walk" + s.gaits.walk.speed + "_cell" + s.cell + "_" + s.cols + "x" + s.rows + ".png";
   }
 
   /* ================= shared ================= */
@@ -690,6 +913,10 @@
     var extra = mode.extra && mode.extra(s);
     tbExtra.hidden = !extra;
     if (extra){ outExtraK.textContent = extra.k; outExtra.innerHTML = extra.v; }
+    $("tb-clip").hidden = tab !== "character";
+    if (tab === "character")
+      $("out-clip").innerHTML = s.gaits.walk.samples + " <small>fps &middot; " +
+                                s.gaits.walk.baseSpeed.toFixed(2) + " m/s</small>";
 
     derived.innerHTML = mode.readout(s) + "<br>preview at <b>" + Math.round(scale * 100) + "%</b>";
     copyhint.textContent = "click size to copy";
@@ -878,7 +1105,7 @@
       if (el.value.trim() === "") { el.value = el.defaultValue; syncSteppers(); render(); }
     });
   });
-  [inGrid, inHidden].forEach(function(el){ el.addEventListener("change", render); });
+  [inGrid, inHidden, inPose].forEach(function(el){ el.addEventListener("change", render); });
   inLabels.addEventListener("input", render);
   syncSteppers();
 

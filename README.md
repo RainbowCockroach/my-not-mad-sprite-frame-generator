@@ -17,13 +17,23 @@ Type the character's **height in metres** — one world unit is one metre — an
 - a **facing arrow** on the floor and a **row label**, so each row says which way the character looks. The arrow follows the camera's 2:1 ground angle, and points screen-left by default because `PlayerVisual` sets `flipX` when moving camera-right — the art is drawn facing left and mirrored at runtime. A label containing “back” aims it away from the camera, “right” mirrors it;
 - a dashed **stance ellipse** — the CapsuleCollider's radius projected onto the floor, so you can see how wide a pose can get before the drawing overhangs what actually collides.
 
-The default sheet is **4 × 4 cells of 256 px**, matching `akane_normal.png`: one animation per row, four frames across, in the order the clips actually use — front idle, front walk, back idle, back walk. Under **Sheet & guides** you can change columns, rows and cell size, set the stance radius, or turn on head-division lines for figure proportions.
+The default sheet is **8 × 4 cells of 256 px**: one animation per row, eight frames across, in the order front idle, front walk, back idle, back walk. Under **Sheet & guides** you can change columns, rows and cell size, set the stance radius, or turn on head-division lines for figure proportions.
 
 Character height is the *drawn* height, not the collider height. In a top-down game only the capsule's radius really affects gameplay, so a taller character is mostly a drawing change.
 
-## Live app
+### Gait: keeping the feet from sliding
 
-https://rainbowcockroach.github.io/my-not-mad-sprite-frame-generator/
+A walk looks glued to the floor only when the body moves exactly one step length per drawn step. Faster than that and the feet skate. Type the character's **height** and **walk speed** (1.4 m/s is an everyday adult pace) and the tool works out the rest:
+
+- **Step length** = `0.415 × height × √(speed / 1.4)`. That's 0.415 × height at a normal walk, and it grows for faster gaits. Set **Step length** under Sheet & guides to override it for the walk.
+- **Samples**: the clip's frame rate, so one loop (two steps) covers exactly two step lengths: `fps = columns × speed / (2 × step)`, rounded.
+- **Base speed**: the speed that rounded clip really animates at, `2 × step × samples / columns`. In Unity the walk state's speed multiplier is `current speed / base speed`, so the feet stay matched at any speed.
+
+Rows labelled "run" use **Run speed** instead. The readout warns when a clip falls under 6 fps (choppy, so draw more frames) or over 15 fps (frantic).
+
+**Pose template** draws a ghost mannequin in every cell. Walk and run rows get one pose per frame (contact, passing, contact, passing) with the feet on the projected floor exactly one step apart; other rows stand. Joints are solved in metres and then projected, so the knees stay correct for a figure walking away. Treat the run poses as a rough guide.
+
+**Floor margin** leaves room under the feet, because a figure walking toward the camera puts its near foot *below* its own pivot on screen. The readout gives the Unity pivot to use (Custom, X 0.5, Y = margin ÷ cell) and warns when the near foot would be clipped.
 
 ## Projection
 
